@@ -9,7 +9,7 @@ Blocks the calling thread until a future is ready.
 */
 
 mod noop_waker;
-mod aruntime;
+pub mod aruntime;
 
 use std::future::Future;
 use std::pin::Pin;
