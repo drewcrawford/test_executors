@@ -98,3 +98,11 @@ pub fn spawn_on<F: Future + Send + 'static>(future: F) {
         sleep_on(future);
     });
 }
+
+/**
+Poll the given future once.
+*/
+pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
+    let mut context = new_context();
+    future.poll(&mut context)
+}
