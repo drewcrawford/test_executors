@@ -35,6 +35,7 @@ pub fn spin_on<F: Future>(mut future: F) -> F::Output {
 
 struct SimpleWakeShared {
     condvar: Condvar,
+    mutex: std::sync::Mutex<()>,
 }
 
 
@@ -47,12 +48,20 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
     },
     |ctx| {
         let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
-        ctx.condvar.notify_all();
-        std::mem::forget(ctx);
+        dlog::perfwarn!("truntime mutex", {
+            let guard = ctx.mutex.lock().unwrap();
+            ctx.condvar.notify_all();
+            drop(guard);
+        });
+
     },
     |ctx| {
         let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
-        ctx.condvar.notify_one();
+        dlog::perfwarn!("truntime mutex", {
+            let guard = ctx.mutex.lock().unwrap();
+            ctx.condvar.notify_one();
+            drop(guard);
+        });
         std::mem::forget(ctx);
     },
     |ctx| {
@@ -66,12 +75,11 @@ Blocks the calling thread until a future is ready.
 This implementation uses a condvar to sleep the thread.
 */
 pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
-    let shared = Rc::new(SimpleWakeShared{condvar: Condvar::new()});
+    let shared = Rc::new(SimpleWakeShared{condvar: Condvar::new(), mutex: std::sync::Mutex::new(())});
     let local = shared.clone();
     let raw_waker = RawWaker::new(Rc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
     let waker = unsafe{Waker::from_raw(raw_waker)};
     let mut context = Context::from_waker(&waker);
-    let mutex = std::sync::Mutex::new(());
     /*
     per docs,
     any calls to notify_one or notify_all which happen logically
@@ -80,7 +88,7 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     ergo, the lock must be locked when polling.
      */
     let mut future = unsafe { Pin::new_unchecked(&mut future) };
-    let mut guard = mutex.lock().unwrap();
+    let mut guard = local.mutex.lock().unwrap();
 
     loop {
         if let Poll::Ready(val) = future.as_mut().poll(&mut context) {
