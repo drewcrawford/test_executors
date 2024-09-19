@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::future::Future;
-use aruntime::ARuntime;
+use aruntime::{ARuntime, ARuntimeObjSafe};
 
 /**
 A runtime based on [spin_on]
@@ -22,6 +22,9 @@ impl ARuntime for SpinRuntime {
         crate::spin_on(f);
     }
 }
+impl ARuntimeObjSafe for SpinRuntime {
+
+}
 
 /**
 A runtime based on [sleep_on]
@@ -39,6 +42,10 @@ impl ARuntime for SleepRuntime {
     }
 }
 
+impl ARuntimeObjSafe for SleepRuntime {
+
+}
+
 
 /**
 A runtime based on [spawn_on]
@@ -54,6 +61,10 @@ impl ARuntime for SpawnRuntime {
     fn spawn_detached<F: Future + Send + 'static>(&mut self, _priority: priority::Priority, _runtime_hint: aruntime::RuntimeHint, f: F) {
         crate::spawn_on(f);
     }
+}
+
+impl ARuntimeObjSafe for SpawnRuntime {
+
 }
 
 //boilerplate
