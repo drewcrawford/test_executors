@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::future::Future;
-use aruntime::{ARuntime, ARuntimeObjSafe};
+use aruntime::{ARuntime, ARuntimeObjSafe, RuntimeHint};
+use priority::Priority;
 
 /**
 A runtime based on [spin_on]
@@ -23,7 +24,10 @@ impl ARuntime for SpinRuntime {
     }
 }
 impl ARuntimeObjSafe for SpinRuntime {
-
+    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+        let f= Box::into_pin(f);
+        crate::spin_on(f);
+    }
 }
 
 /**
@@ -43,7 +47,10 @@ impl ARuntime for SleepRuntime {
 }
 
 impl ARuntimeObjSafe for SleepRuntime {
-
+    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+        let f= Box::into_pin(f);
+        crate::sleep_on(f);
+    }
 }
 
 
@@ -64,7 +71,10 @@ impl ARuntime for SpawnRuntime {
 }
 
 impl ARuntimeObjSafe for SpawnRuntime {
-
+    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+        let f= Box::into_pin(f);
+        crate::spawn_on(f);
+    }
 }
 
 //boilerplate
