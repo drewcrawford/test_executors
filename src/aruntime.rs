@@ -22,9 +22,12 @@ impl ARuntime for SpinRuntime {
     fn spawn_detached<F: Future + Send>(&mut self, _priority: priority::Priority, _runtime_hint: aruntime::RuntimeHint, f: F) {
         crate::spin_on(f);
     }
+    fn to_objsafe_runtime(self) -> Box<dyn ARuntimeObjSafe> {
+        Box::new(self)
+    }
 }
 impl ARuntimeObjSafe for SpinRuntime {
-    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+    fn spawn_detached_objsafe(&self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
         let f= Box::into_pin(f);
         crate::spin_on(f);
     }
@@ -44,13 +47,17 @@ impl ARuntime for SleepRuntime {
     fn spawn_detached<F: Future + Send>(&mut self, _priority: priority::Priority, _runtime_hint: aruntime::RuntimeHint, f: F) {
         crate::sleep_on(f);
     }
+    fn to_objsafe_runtime(self) -> Box<dyn ARuntimeObjSafe> {
+        Box::new(self)
+    }
 }
 
 impl ARuntimeObjSafe for SleepRuntime {
-    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+    fn spawn_detached_objsafe(&self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
         let f= Box::into_pin(f);
         crate::sleep_on(f);
     }
+
 }
 
 
@@ -68,10 +75,13 @@ impl ARuntime for SpawnRuntime {
     fn spawn_detached<F: Future + Send + 'static>(&mut self, _priority: priority::Priority, _runtime_hint: aruntime::RuntimeHint, f: F) {
         crate::spawn_on(f);
     }
+    fn to_objsafe_runtime(self) -> Box<dyn ARuntimeObjSafe> {
+        Box::new(self)
+    }
 }
 
 impl ARuntimeObjSafe for SpawnRuntime {
-    fn spawn_detached_objsafe(&mut self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
+    fn spawn_detached_objsafe(&self, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
         let f= Box::into_pin(f);
         crate::spawn_on(f);
     }
