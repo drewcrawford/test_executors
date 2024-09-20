@@ -125,6 +125,12 @@ impl Default for SpawnRuntime {
     }
 }
 
+/**
+Sets a truntime as the global runtime.
+*/
+pub fn set_global_test_runtime() {
+    aruntime::set_global_runtime(SpawnRuntime.to_objsafe_runtime())
+}
 #[cfg(test)] mod test {
     #[test] fn assert_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
