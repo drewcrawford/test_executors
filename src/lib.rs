@@ -24,6 +24,7 @@ Blocks the calling thread until a future is ready.
 This implementation uses a spinloop.
 */
 pub fn spin_on<F: Future>(mut future: F) -> F::Output {
+    //we inherit the parent dlog::context here.
     let mut context = new_context();
     let mut future = unsafe { Pin::new_unchecked(&mut future) };
     loop {
@@ -75,6 +76,7 @@ Blocks the calling thread until a future is ready.
 This implementation uses a condvar to sleep the thread.
 */
 pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
+    //we inherit the parent dlog::context here.
     let shared = Rc::new(SimpleWakeShared{condvar: Condvar::new(), mutex: std::sync::Mutex::new(())});
     let local = shared.clone();
     let raw_waker = RawWaker::new(Rc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
@@ -102,8 +104,22 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 A function that spawns the given future and does not wait for it to complete.
 */
 pub fn spawn_on<F: Future + Send + 'static>(future: F) {
+    let prior_context = dlog::context::Context::current_clone();
+
     std::thread::spawn(move || {
+        let pushed_id = if let Some(prior_context) = prior_context {
+            let new_context = dlog::context::Context::new_task(Some(prior_context));
+            let new_context_id = new_context.context_id();
+            dlog::context::Context::set_current(new_context);
+            Some(new_context_id)
+        }
+        else {
+            None
+        };
         sleep_on(future);
+        if let Some(pushed_id) = pushed_id {
+            dlog::context::Context::pop(pushed_id);
+        }
     });
 }
 
