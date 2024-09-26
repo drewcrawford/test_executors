@@ -13,8 +13,7 @@ pub mod aruntime;
 
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::sync::Condvar;
+use std::sync::{Arc, Condvar};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 use crate::noop_waker::new_context;
 
@@ -42,13 +41,13 @@ struct SimpleWakeShared {
 
 static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
     |ctx|{
-        let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
+        let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
         let ctx2 = ctx.clone();
         std::mem::forget(ctx);
-        RawWaker::new(Rc::into_raw(ctx2) as *const (), &CONDVAR_WAKER_VTABLE)
+        RawWaker::new(Arc::into_raw(ctx2) as *const (), &CONDVAR_WAKER_VTABLE)
     },
     |ctx| {
-        let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
+        let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
         dlog::perfwarn!("truntime mutex", {
             let guard = ctx.mutex.lock().unwrap();
             ctx.condvar.notify_all();
@@ -57,7 +56,7 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
 
     },
     |ctx| {
-        let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
+        let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
         dlog::perfwarn!("truntime mutex", {
             let guard = ctx.mutex.lock().unwrap();
             ctx.condvar.notify_one();
@@ -66,7 +65,7 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
         std::mem::forget(ctx);
     },
     |ctx| {
-        let ctx = unsafe{Rc::from_raw(ctx as *const SimpleWakeShared)};
+        let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
         std::mem::drop(ctx);
     },
 );
@@ -77,9 +76,9 @@ This implementation uses a condvar to sleep the thread.
 */
 pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     //we inherit the parent dlog::context here.
-    let shared = Rc::new(SimpleWakeShared{condvar: Condvar::new(), mutex: std::sync::Mutex::new(())});
+    let shared = Arc::new(SimpleWakeShared{condvar: Condvar::new(), mutex: std::sync::Mutex::new(())});
     let local = shared.clone();
-    let raw_waker = RawWaker::new(Rc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
+    let raw_waker = RawWaker::new(Arc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
     let waker = unsafe{Waker::from_raw(raw_waker)};
     let mut context = Context::from_waker(&waker);
     /*
