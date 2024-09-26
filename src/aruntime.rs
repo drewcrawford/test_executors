@@ -30,19 +30,17 @@ impl ARuntime for SpinRuntime {
         }
     }
 
-    fn spawn_after(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) {
+    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: F) {
         let now = Instant::now();
-        if now >= time {
-            dlog::info_sync!("spawned future: {label}", label=label);
-            f();
-        } else {
+        if now < time {
             let dur = time - now;
             std::thread::sleep(dur);
-            dlog::info_sync!("spawned future: {label}", label=label);
-            f();
         }
+        assert!(Instant::now() >= time);
+        dlog::info_sync!("spawned future: {label}", label=label);
+        crate::spin_on(f);
     }
-    fn spawn_after_async(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) -> impl Future<Output=()> {
+    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: F) -> impl Future<Output=()> {
         async move {
             self.spawn_after(label, priority, runtime_hint, time, f);
         }
@@ -74,17 +72,15 @@ impl ARuntime for SleepRuntime {
         dlog::info_sync!("spawned future: {label}", label=label);
         crate::sleep_on(f);
     }
-    fn spawn_after(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) {
+    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: F) {
         let now = Instant::now();
-        if now >= time {
-            dlog::info_sync!("spawned future: {label}", label=label);
-            f();
-        } else {
+        if now < time {
             let dur = time - now;
             std::thread::sleep(dur);
-            dlog::info_sync!("spawned future: {label}", label=label);
-            f();
         }
+        assert!(Instant::now() >= time);
+        dlog::info_sync!("spawned future: {label}", label=label);
+        crate::sleep_on(f);
     }
     fn spawn_detached_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, f: F) -> impl Future<Output=()> {
         async move {
@@ -92,7 +88,7 @@ impl ARuntime for SleepRuntime {
         }
     }
 
-    fn spawn_after_async(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) -> impl Future<Output=()> {
+    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: F) -> impl Future<Output=()> {
         async move {
             self.spawn_after(label, priority, runtime_hint, time, f);
         }
@@ -138,7 +134,7 @@ impl ARuntime for SpawnRuntime {
         Box::new(self)
     }
 
-    fn spawn_after(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) {
+    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, time: Instant, f: F) {
         crate::spawn_on(async move {
             if Instant::now() < time {
                 let dur = time - Instant::now();
@@ -146,10 +142,10 @@ impl ARuntime for SpawnRuntime {
             }
             assert!(Instant::now() >= time);
             dlog::info_async!("spawned future: {label}", label=label);
-            f();
+            f.await;
         })
     }
-    fn spawn_after_async(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: impl FnOnce() + Send + 'static) -> impl Future<Output=()> {
+    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: F) -> impl Future<Output=()> {
         async move {
             self.spawn_after(label, priority, runtime_hint, time, f);
         }
