@@ -129,3 +129,26 @@ pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
     let mut context = new_context();
     future.poll(&mut context)
 }
+
+#[cfg(test)] mod tests {
+    use std::future::Future;
+    use std::task::Poll;
+
+    #[test] fn test_sleep_reentrant() {
+        struct F(bool);
+        impl Future for F {
+            type Output = ();
+            fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Self::Output> {
+                if !self.0 {
+                    self.0 = true;
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                } else {
+                    Poll::Ready(())
+                }
+            }
+        }
+        let f = F(false);
+        super::sleep_on(f);
+    }
+}
