@@ -13,8 +13,9 @@ pub mod aruntime;
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Condvar};
+use std::sync::{Arc};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+use semaphore::one::Semaphore;
 use crate::noop_waker::new_context;
 
 /**
@@ -34,8 +35,7 @@ pub fn spin_on<F: Future>(mut future: F) -> F::Output {
 }
 
 struct SimpleWakeShared {
-    condvar: Condvar,
-    mutex: std::sync::Mutex<()>,
+    semaphore: Semaphore,
 }
 
 
@@ -48,20 +48,11 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
     },
     |ctx| {
         let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
-        dlog::perfwarn!("truntime mutex", {
-            let guard = ctx.mutex.lock().unwrap();
-            ctx.condvar.notify_all();
-            drop(guard);
-        });
-
+        ctx.semaphore.signal_if_needed();
     },
     |ctx| {
         let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
-        dlog::perfwarn!("truntime mutex", {
-            let guard = ctx.mutex.lock().unwrap();
-            ctx.condvar.notify_one();
-            drop(guard);
-        });
+        ctx.semaphore.signal_if_needed();
         std::mem::forget(ctx);
     },
     |ctx| {
@@ -76,7 +67,7 @@ This implementation uses a condvar to sleep the thread.
 */
 pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     //we inherit the parent dlog::context here.
-    let shared = Arc::new(SimpleWakeShared{condvar: Condvar::new(), mutex: std::sync::Mutex::new(())});
+    let shared = Arc::new(SimpleWakeShared{semaphore: Semaphore::new(false)});
     let local = shared.clone();
     let raw_waker = RawWaker::new(Arc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
     let waker = unsafe{Waker::from_raw(raw_waker)};
@@ -89,13 +80,12 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     ergo, the lock must be locked when polling.
      */
     let mut future = unsafe { Pin::new_unchecked(&mut future) };
-    let mut guard = local.mutex.lock().unwrap();
 
     loop {
         if let Poll::Ready(val) = future.as_mut().poll(&mut context) {
             return val;
         }
-        guard = local.condvar.wait(guard).unwrap();
+        local.semaphore.wait();
     }
 }
 

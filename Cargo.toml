@@ -7,3 +7,4 @@ edition = "2021"
 aruntime = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/aruntime.git"}
 priority = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/priority.git"}
 dlog = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/dlog.git", version = "*"}
+semaphore = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/semaphore.git"}
