@@ -95,7 +95,7 @@ A function that spawns the given future and does not wait for it to complete.
 */
 pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F) {
     let prior_context = dlog::context::Context::current();
-    let new_context = dlog::context::Context::new_task(Some(prior_context), "spawn_on");
+    let new_context = dlog::context::Context::new_task(Some(prior_context), thread_name);
     std::thread::Builder::new()
         .name(thread_name.to_string())
         .spawn(move || {
