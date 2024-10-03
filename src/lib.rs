@@ -93,10 +93,11 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 /**
 A function that spawns the given future and does not wait for it to complete.
 */
-pub fn spawn_on<F: Future + Send + 'static>(future: F) {
+pub fn spawn_on<F: Future + Send + 'static>(future: F,thread_name: String) {
     let prior_context = dlog::context::Context::current_clone();
-
-    std::thread::spawn(move || {
+    std::thread::Builder::new()
+        .name(thread_name.to_string())
+        .spawn(move || {
         let pushed_id = if let Some(prior_context) = prior_context {
             let new_context = dlog::context::Context::new_task(Some(prior_context));
             let new_context_id = new_context.context_id();
@@ -110,7 +111,7 @@ pub fn spawn_on<F: Future + Send + 'static>(future: F) {
         if let Some(pushed_id) = pushed_id {
             dlog::context::Context::pop(pushed_id);
         }
-    });
+    }).expect("Cant spawn thread");
 }
 
 /**

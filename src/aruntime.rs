@@ -127,7 +127,7 @@ impl ARuntime for SpawnRuntime {
             dlog::info_async!("spawned future: {label}", label=label);
             f.await;
         };
-        crate::spawn_on(block);
+        crate::spawn_on(block, label.to_string());
     }
 
     fn to_objsafe_runtime(self) -> Box<dyn ARuntimeObjSafe> {
@@ -143,7 +143,7 @@ impl ARuntime for SpawnRuntime {
             assert!(Instant::now() >= time);
             dlog::info_async!("spawned future: {label}", label=label);
             f.await;
-        })
+        }, label.to_string())
     }
     fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: RuntimeHint, time: Instant, f: F) -> impl Future<Output=()> {
         async move {
@@ -161,7 +161,7 @@ impl ARuntimeObjSafe for SpawnRuntime {
     fn spawn_detached_objsafe(&self, label: &'static str, _priority: Priority, _runtime_hint: RuntimeHint, f: Box<dyn Future<Output=()> + Send + 'static>) {
         dlog::info_sync!("spawned future: {label}", label=label);
         let f= Box::into_pin(f);
-        crate::spawn_on(f);
+        crate::spawn_on(f, label.to_string());
     }
 }
 
