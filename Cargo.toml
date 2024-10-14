@@ -1,10 +1,18 @@
 [package]
-name = "truntime"
+name = "test_executors"
 version = "0.1.0"
 edition = "2021"
+description = "Simple async executors for testing."
+license = "MIT OR Apache-2.0"
+homepage = "https://sealedabstract.com/code/test_executors"
+repository = "https://github.com/drewcrawford/test_executors"
+keywords = ["testing","async","await","future"]
+categories = ["asynchronous", "concurrency", "development-tools::testing"]
+exclude = [".*"]
+rust-version = "1.75.0"
 
 [dependencies]
-aruntime = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/aruntime.git"}
-priority = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/priority.git"}
-dlog = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/dlog.git", version = "*"}
-semaphore = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/semaphore.git"}
+some_executor = "~0"
+priority = "~0"
+logwise = "~0"
+blocking_semaphore = "~0"

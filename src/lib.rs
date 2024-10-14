@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 /*!
 A simple runtime that is useful for testing.
 
@@ -16,7 +17,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-use semaphore::one::Semaphore;
+use blocking_semaphore::one::Semaphore;
 use crate::noop_waker::new_context;
 
 /**
@@ -94,16 +95,16 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 A function that spawns the given future and does not wait for it to complete.
 */
 pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F) {
-    let prior_context = dlog::context::Context::current();
-    let new_context = dlog::context::Context::new_task(Some(prior_context), thread_name);
+    let prior_context = logwise::context::Context::current();
+    let new_context = logwise::context::Context::new_task(Some(prior_context), thread_name);
     std::thread::Builder::new()
         .name(thread_name.to_string())
         .spawn(move || {
             let pushed_id = new_context.context_id();
-            dlog::context::Context::set_current(new_context);
+            logwise::context::Context::set_current(new_context);
 
             sleep_on(future);
-            dlog::context::Context::pop(pushed_id);
+            logwise::context::Context::pop(pushed_id);
         }).expect("Cant spawn thread");
 }
 
