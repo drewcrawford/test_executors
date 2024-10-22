@@ -110,10 +110,38 @@ pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F
 
 /**
 Poll the given future once.
+
+# Example
+```
+use test_executors::pend_forever::PendForever;
+let mut future = PendForever;
+let result = test_executors::poll_once(std::pin::Pin::new(&mut future));
+```
 */
 pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
     let mut context = new_context();
     future.poll(&mut context)
+}
+
+/**
+Poll the given future once.
+
+This is a convenience function that pins the future for you.
+
+# Example
+```
+use test_executors::pend_forever::PendForever;
+let mut future = PendForever;
+let result = test_executors::poll_once_pin(future);
+```
+
+The main drawback of this function is that by transferring ownership of the future to the function, you lose the ability to poll the future again.
+*/
+pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
+    let mut context = new_context();
+    let pinned = std::pin::pin!(future);
+    let output = pinned.poll(&mut context);
+    output
 }
 
 #[cfg(test)] mod tests {
