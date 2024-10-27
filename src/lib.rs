@@ -33,6 +33,7 @@ pub fn spin_on<F: Future>(mut future: F) -> F::Output {
         if let Poll::Ready(val) = future.as_mut().poll(&mut context) {
             return val;
         }
+        std::hint::spin_loop();
     }
 }
 

@@ -1,14 +1,16 @@
+use std::any::Any;
 // SPDX-License-Identifier: MIT OR Apache-2.0
 use std::fmt::Display;
 use std::future::Future;
-use std::time::Instant;
-use some_executor::{Hint, SomeExecutor, SomeExecutorObjSafe};
-use priority::Priority;
+use std::pin::Pin;
+use some_executor::{DynExecutor, DynONotifier, SomeExecutor, SomeExecutorExt};
+use some_executor::observer::{ExecutorNotified, NoNotified, Observer, ObserverNotified};
+use some_executor::task::Task;
 
 /**
 A runtime based on [spin_on]
 */
-#[derive(Debug, Copy, Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SpinRuntime;
 
 impl SpinRuntime {
@@ -17,152 +19,207 @@ impl SpinRuntime {
     }
 }
 
-
-
-
+impl SomeExecutorExt for SpinRuntime {}
 impl SomeExecutor for SpinRuntime {
-    fn spawn_detached<F: Future + Send>(&mut self, label: &'static str, _priority: priority::Priority, _runtime_hint: Hint, f: F) {
-        logwise::info_sync!("spawned future: {label}", label=label);
-        crate::spin_on(f);
+    type ExecutorNotifier = NoNotified;
+
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> Observer<F::Output, Self::ExecutorNotifier>
+    where
+        Self: Sized,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        while task.poll_after() > std::time::Instant::now() {
+            std::hint::spin_loop()
+        }
+        let (spawned, observer) = task.spawn(self);
+        crate::spin_on(spawned);
+        observer
     }
-    fn spawn_detached_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, f: F) -> impl Future<Output=()> {
+
+    fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> impl Future<Output=Observer<F::Output, Self::ExecutorNotifier>> + Send + 'static
+    where
+        Self: Sized,
+        F::Output: Send,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
         async move {
-            self.spawn_detached(label, priority, runtime_hint, f);
+            while spawned.poll_after() > std::time::Instant::now() {
+                std::hint::spin_loop()
+            }
+            crate::spin_on(spawned);
+            observer
         }
     }
 
-    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: Hint, time: Instant, f: F) {
-        let now = Instant::now();
-        if now < time {
-            let dur = time - now;
-            std::thread::sleep(dur);
+
+
+    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<DynONotifier>>) -> Observer<Box<dyn Any + 'static + Send>, Box<dyn ExecutorNotified + Send>> {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+
+        let (spawned, observer) = task.spawn_objsafe(self);
+        while spawned.poll_after() > std::time::Instant::now() {
+            std::hint::spin_loop()
         }
-        assert!(Instant::now() >= time);
-        logwise::info_sync!("spawned future: {label}", label=label);
-        crate::spin_on(f);
+        crate::spin_on(spawned);
+        observer
     }
-    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, time: Instant, f: F) -> impl Future<Output=()> {
-        async move {
-            self.spawn_after(label, priority, runtime_hint, time, f);
-        }
+
+
+    fn clone_box(&self) -> Box<DynExecutor> {
+        Box::new(*self)
     }
-    fn to_objsafe_runtime(self) -> Box<dyn SomeExecutorObjSafe> {
-        Box::new(self)
-    }
-}
-impl SomeExecutorObjSafe for SpinRuntime {
-    fn spawn_detached_objsafe(&self, label: &'static str, _priority: Priority, _runtime_hint: Hint, f: Box<dyn Future<Output=()> + Send + 'static>) {
-        logwise::info_sync!("spawned future: {label}", label=label);
-        let f= Box::into_pin(f);
-        crate::spin_on(f);
+
+    fn executor_notifier(&mut self) -> Option<Self::ExecutorNotifier> {
+        None
     }
 }
 
 /**
 A runtime based on [sleep_on]
 */
-#[derive(Debug, Copy, Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SleepRuntime;
 impl SleepRuntime {
     pub const fn new() -> Self {
         Self
     }
 }
-impl SomeExecutor for SleepRuntime {
-    fn spawn_detached<F: Future + Send>(&mut self, label: &'static str, _priority: priority::Priority, _runtime_hint: Hint, f: F) {
-        logwise::info_sync!("spawned future: {label}", label=label);
-        crate::sleep_on(f);
-    }
-    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: Hint, time: Instant, f: F) {
-        let now = Instant::now();
-        if now < time {
-            let dur = time - now;
-            std::thread::sleep(dur);
-        }
-        assert!(Instant::now() >= time);
-        logwise::info_sync!("spawned future: {label}", label=label);
-        crate::sleep_on(f);
-    }
-    fn spawn_detached_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, f: F) -> impl Future<Output=()> {
-        async move {
-            self.spawn_detached(label, priority, runtime_hint, f);
-        }
-    }
-
-    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, time: Instant, f: F) -> impl Future<Output=()> {
-        async move {
-            self.spawn_after(label, priority, runtime_hint, time, f);
-        }
-    }
-
-    fn to_objsafe_runtime(self) -> Box<dyn SomeExecutorObjSafe> {
-        Box::new(self)
-    }
+impl SomeExecutorExt for SleepRuntime {
 
 }
 
-impl SomeExecutorObjSafe for SleepRuntime {
-    fn spawn_detached_objsafe(&self, label: &'static str, _priority: Priority, _runtime_hint: Hint, f: Box<dyn Future<Output=()> + Send + 'static>) {
-        logwise::info_sync!("spawned future: {label}", label=label);
-        let f= Box::into_pin(f);
-        crate::sleep_on(f);
+impl SomeExecutor for SleepRuntime {
+    type ExecutorNotifier = NoNotified;
+
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> Observer<F::Output, Self::ExecutorNotifier>
+    where
+        Self: Sized,
+        F::Output: Send,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        let now = std::time::Instant::now();
+        if spawned.poll_after() > now {
+            let dur = spawned.poll_after() - now;
+            std::thread::sleep(dur);
+        }
+        crate::sleep_on(spawned);
+        observer
     }
 
+    fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> impl Future<Output=Observer<F::Output, Self::ExecutorNotifier>> + Send + 'static
+    where
+        Self: Sized,
+        F::Output: Send,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        async move {
+            let now = std::time::Instant::now();
+            if spawned.poll_after() > now {
+                let dur = spawned.poll_after() - now;
+                std::thread::sleep(dur);
+            }
+            crate::sleep_on(spawned);
+            observer
+        }
+    }
+
+    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<DynONotifier>>) -> Observer<Box<dyn Any + 'static + Send>, Box<dyn ExecutorNotified + Send>> {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn_objsafe(self);
+        let now = std::time::Instant::now();
+        if spawned.poll_after() > now {
+            let dur = spawned.poll_after() - now;
+            std::thread::sleep(dur);
+        }
+        crate::sleep_on(spawned);
+        observer
+    }
+
+    fn clone_box(&self) -> Box<DynExecutor> {
+        Box::new(*self)
+    }
+
+    fn executor_notifier(&mut self) -> Option<Self::ExecutorNotifier> {
+        None
+    }
 }
 
 
 /**
 A runtime based on [spawn_on]
 */
-#[derive(Debug, Copy, Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SpawnRuntime;
 impl SpawnRuntime {
     pub const fn new() -> Self {
         Self
     }
 }
-impl SomeExecutor for SpawnRuntime {
-
-    fn spawn_detached<F: Future + Send + 'static>(&mut self,label: &'static str, _priority: priority::Priority, _runtime_hint: Hint, f: F) {
-        let block = async move {
-            logwise::info_async!("spawned future: {label}", label=label);
-            f.await;
-        };
-        crate::spawn_on(label, block);
-    }
-
-    fn to_objsafe_runtime(self) -> Box<dyn SomeExecutorObjSafe> {
-        Box::new(self)
-    }
-
-    fn spawn_after<F: Future + Send + 'static>(&mut self, label: &'static str, _priority: Priority, _runtime_hint: Hint, time: Instant, f: F) {
-        crate::spawn_on(label, async move {
-            if Instant::now() < time {
-                let dur = time - Instant::now();
-                std::thread::sleep(dur);
-            }
-            assert!(Instant::now() >= time);
-            logwise::info_async!("spawned future: {label}", label=label);
-            f.await;
-        })
-    }
-    fn spawn_after_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, time: Instant, f: F) -> impl Future<Output=()> {
-        async move {
-            self.spawn_after(label, priority, runtime_hint, time, f);
-        }
-    }
-    fn spawn_detached_async<F: Future + Send + 'static>(&mut self, label: &'static str, priority: Priority, runtime_hint: Hint, f: F) -> impl Future<Output=()> {
-        async move {
-            self.spawn_detached(label, priority, runtime_hint, f);
-        }
-    }
+impl SomeExecutorExt for SpawnRuntime {
 }
 
-impl SomeExecutorObjSafe for SpawnRuntime {
-    fn spawn_detached_objsafe(&self, label: &'static str, _priority: Priority, _runtime_hint: Hint, f: Box<dyn Future<Output=()> + Send + 'static>) {
-        logwise::info_sync!("spawned future: {label}", label=label);
-        let f= Box::into_pin(f);
-        crate::spawn_on(label, f);
+
+impl SomeExecutor for SpawnRuntime {
+    type ExecutorNotifier = NoNotified;
+
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> Observer<F::Output, Self::ExecutorNotifier>
+    where
+        Self: Sized,
+        F::Output: Send,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        std::thread::spawn(move || {
+            if spawned.poll_after() > std::time::Instant::now() {
+                let dur = spawned.poll_after() - std::time::Instant::now();
+                std::thread::sleep(dur);
+            }
+            crate::sleep_on(spawned);
+        });
+        observer
+    }
+
+    fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> impl Future<Output=Observer<F::Output, Self::ExecutorNotifier>> + Send + 'static
+    where
+        Self: Sized,
+        F::Output: Send,
+    {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        async move {
+            std::thread::spawn(move || {
+                if spawned.poll_after() > std::time::Instant::now() {
+                    let dur = spawned.poll_after() - std::time::Instant::now();
+                    std::thread::sleep(dur);
+                }
+                crate::sleep_on(spawned);
+            });
+            observer
+        }
+    }
+
+    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<DynONotifier>>) -> Observer<Box<dyn Any + 'static + Send>, Box<dyn ExecutorNotified + Send>> {
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn_objsafe(self);
+        std::thread::spawn(move || {
+            if spawned.poll_after() > std::time::Instant::now() {
+                let dur = spawned.poll_after() - std::time::Instant::now();
+                std::thread::sleep(dur);
+            }
+            crate::sleep_on(spawned);
+        });
+        observer
+    }
+
+    fn clone_box(&self) -> Box<DynExecutor> {
+        Box::new(*self)
+    }
+
+    fn executor_notifier(&mut self) -> Option<Self::ExecutorNotifier> {
+        None
     }
 }
 
@@ -208,10 +265,13 @@ impl Default for SpawnRuntime {
 Sets a truntime as the global runtime.
 */
 pub fn set_global_test_runtime() {
-    some_executor::set_global_runtime(SpawnRuntime.to_objsafe_runtime())
+    let as_dyn = Box::new(SpawnRuntime) as Box<DynExecutor>;
+    some_executor::global_executor::set_global_executor(as_dyn)
 }
-#[cfg(test)] mod test {
-    #[test] fn assert_send_sync() {
+#[cfg(test)]
+mod test {
+    #[test]
+    fn assert_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<super::SpinRuntime>();
         assert_send_sync::<super::SleepRuntime>();
