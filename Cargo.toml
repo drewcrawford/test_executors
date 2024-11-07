@@ -1,6 +1,6 @@
 [package]
 name = "test_executors"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
@@ -12,8 +12,7 @@ exclude = [".*"]
 rust-version = "1.75.0"
 
 [dependencies]
-#some_executor = ">=0"
-some_executor = {git = "ssh://gitea@gitea.mermaid-gecko.ts.net/Metropolis/some_executor"}
+some_executor = "0.2.0"
 priority = ">=0"
 logwise = ">=0.1.1"
 blocking_semaphore = ">=0"
