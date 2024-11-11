@@ -12,7 +12,6 @@ Blocks the calling thread until a future is ready.
 mod noop_waker;
 pub mod aruntime;
 pub mod pend_forever;
-mod test_async;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -153,6 +152,9 @@ pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
 #[cfg(test)] mod tests {
     use std::future::Future;
     use std::task::Poll;
+
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[test] fn test_sleep_reentrant() {
         struct F(bool);

@@ -18,6 +18,7 @@ logwise = ">=0.1.1"
 blocking_semaphore = ">=0"
 test_executors_proc = { path = "test_executors_proc" }
 
+# wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
 wasm-bindgen = "0.2"
 
