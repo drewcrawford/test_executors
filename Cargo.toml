@@ -1,6 +1,6 @@
 [package]
 name = "test_executors"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ some_executor = "0.2.0"
 priority = ">=0"
 logwise = ">=0.1.1"
 blocking_semaphore = ">=0"
-test_executors_proc = { path = "test_executors_proc" }
+test_executors_proc = "0.3.0"
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
