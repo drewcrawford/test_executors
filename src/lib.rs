@@ -12,6 +12,7 @@ Blocks the calling thread until a future is ready.
 mod noop_waker;
 pub mod aruntime;
 pub mod pend_forever;
+mod test_async;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -19,6 +20,10 @@ use std::sync::{Arc};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 use blocking_semaphore::one::Semaphore;
 use crate::noop_waker::new_context;
+
+pub use test_executors_proc::async_test;
+
+extern crate self as test_executors;
 
 /**
 Blocks the calling thread until a future is ready.
@@ -165,5 +170,14 @@ pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
         }
         let f = F(false);
         super::sleep_on(f);
+    }
+
+
+
+    #[crate::async_test] async fn hello_world() {
+        let f = async {
+            "hello world"
+        };
+        assert_eq!(f.await, "hello world");
     }
 }

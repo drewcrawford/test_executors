@@ -16,3 +16,11 @@ some_executor = "0.2.0"
 priority = ">=0"
 logwise = ">=0.1.1"
 blocking_semaphore = ">=0"
+test_executors_proc = { path = "test_executors_proc" }
+
+[target.'cfg(target_arch="wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+
+[target.'cfg(target_arch="wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.45"
