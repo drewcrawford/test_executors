@@ -12,6 +12,7 @@ Blocks the calling thread until a future is ready.
 mod noop_waker;
 pub mod aruntime;
 pub mod pend_forever;
+mod sys;
 
 use std::future::Future;
 use std::pin::Pin;
