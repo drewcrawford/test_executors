@@ -15,3 +15,6 @@ The executors are:
 This crate implements the [some_executor](https://crates.io/crates/some_executor) trait for all executors, allowing them
 to be used in executor-agnostic code.
 
+# `async_test`
+This crate provides a macro, `async_test`, allowing tests to be used with async functions, including support
+for wasm32 targets.
