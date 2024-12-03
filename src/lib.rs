@@ -70,10 +70,12 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
     },
     |ctx| {
         let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
+        logwise::trace_sync!("waking");
         ctx.semaphore.signal_if_needed();
     },
     |ctx| {
         let ctx = unsafe{Arc::from_raw(ctx as *const SimpleWakeShared)};
+        logwise::trace_sync!("waking (by ref)");
         ctx.semaphore.signal_if_needed();
         std::mem::forget(ctx);
     },
@@ -104,10 +106,14 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     let mut future = unsafe { Pin::new_unchecked(&mut future) };
 
     loop {
+        logwise::trace_sync!("polling future");
         if let Poll::Ready(val) = future.as_mut().poll(&mut context) {
+            logwise::trace_sync!("future is ready");
             return val;
         }
+        logwise::trace_sync!("future is not ready");
         local.semaphore.wait();
+        logwise::trace_sync!("woken");
     }
 }
 
