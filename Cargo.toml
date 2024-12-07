@@ -12,7 +12,8 @@ exclude = [".*"]
 rust-version = "1.75.0"
 
 [dependencies]
-some_executor = {path = "../some_executor"}
+some_executor = "0.3.0"
+#some_executor = {path = "../some_executor"}
 priority = ">=0"
 logwise = ">=0.1.1"
 blocking_semaphore = ">=0"
