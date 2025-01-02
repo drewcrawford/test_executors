@@ -15,7 +15,7 @@ rust-version = "1.75.0"
 some_executor = "0.3.0"
 #some_executor = {path = "../some_executor"}
 priority = ">=0"
-logwise = ">=0.1.1"
+logwise = "0.2.2"
 blocking_semaphore = ">=0"
 test_executors_proc = "0.3.0"
 
@@ -23,7 +23,10 @@ test_executors_proc = "0.3.0"
 [target.'cfg(target_arch="wasm32")'.dependencies]
 wasm-bindgen = "0.2"
 web-time = "1.1.0"
-
+wasm-bindgen-futures = "0.4.49"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.45"
+
+[patch.crates-io]
+logwise = {path = "../logwise"}

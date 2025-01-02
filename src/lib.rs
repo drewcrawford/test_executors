@@ -121,17 +121,34 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 A function that spawns the given future and does not wait for it to complete.
 */
 pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F) {
-    let prior_context = logwise::context::Context::current();
-    let new_context = logwise::context::Context::new_task(Some(prior_context), thread_name);
-    std::thread::Builder::new()
-        .name(thread_name.to_string())
-        .spawn(move || {
-            let pushed_id = new_context.context_id();
-            logwise::context::Context::set_current(new_context);
+        let prior_context = logwise::context::Context::current();
+        let new_context = logwise::context::Context::new_task(Some(prior_context), thread_name);
+        std::thread::Builder::new()
+            .name(thread_name.to_string())
+            .spawn(move || {
+                let pushed_id = new_context.context_id();
+                logwise::context::Context::set_current(new_context);
 
-            sleep_on(future);
-            logwise::context::Context::pop(pushed_id);
-        }).expect("Cant spawn thread");
+                sleep_on(future);
+                logwise::context::Context::pop(pushed_id);
+            }).expect("Cant spawn thread");
+}
+
+/**
+Spawns the future in a platform-appropriate way.
+
+On most platforms, this uses [sleep_on].
+On wasm32, it uses [wasm_bindgen_futures::spawn_local].
+*/
+pub fn spawn_local<F: Future + 'static>(future: F, debug_label: &'static str) {
+    #[cfg(not(target_arch = "wasm32"))]
+    sleep_on(future);
+    #[cfg(target_arch = "wasm32")] {
+        let c = logwise::context::Context::current();
+        let new_context = logwise::context::Context::new_task(Some(c), debug_label);
+        wasm_bindgen_futures::spawn_local(async move { logwise::context::ApplyContext::new(new_context, future).await; });
+    }
+
 }
 
 /**
