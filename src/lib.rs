@@ -140,12 +140,12 @@ Spawns the future in a platform-appropriate way.
 On most platforms, this uses [sleep_on].
 On wasm32, it uses [wasm_bindgen_futures::spawn_local].
 */
-pub fn spawn_local<F: Future + 'static>(future: F, debug_label: &'static str) {
+pub fn spawn_local<F: Future + 'static>(future: F, _debug_label: &'static str) {
     #[cfg(not(target_arch = "wasm32"))]
     sleep_on(future);
     #[cfg(target_arch = "wasm32")] {
         let c = logwise::context::Context::current();
-        let new_context = logwise::context::Context::new_task(Some(c), debug_label);
+        let new_context = logwise::context::Context::new_task(Some(c), _debug_label);
         wasm_bindgen_futures::spawn_local(async move { logwise::context::ApplyContext::new(new_context, future).await; });
     }
 
@@ -158,7 +158,7 @@ Poll the given future once.
 ```
 use test_executors::pend_forever::PendForever;
 let mut future = PendForever;
-let result = test_executors::poll_once(std::pin::Pin::new(&mut future));
+let result = test_executors::poll_once(std::pin::Pin::new(&mut future).as_mut());
 ```
 */
 pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
@@ -190,6 +190,7 @@ pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
 #[cfg(test)] mod tests {
     use std::future::Future;
     use std::task::Poll;
+    use crate::pend_forever::PendForever;
 
     #[cfg(target_arch = "wasm32")]
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -219,5 +220,16 @@ pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
             "hello world"
         };
         assert_eq!(f.await, "hello world");
+    }
+
+    #[test] fn poll_once_test() {
+        let f = PendForever;
+        let mut pinned = std::pin::pin!(f);
+        let result = super::poll_once(pinned.as_mut());
+        assert_eq!(result, Poll::Pending);
+
+        let result2 = super::poll_once(pinned.as_mut());
+        assert_eq!(result2, Poll::Pending);
+
     }
 }
