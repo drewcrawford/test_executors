@@ -42,14 +42,14 @@
 //! // Now some_executor::global_executor::spawn() will use SpawnRuntime
 //! ```
 
+use some_executor::observer::{FinishedObservation, Observer, ObserverNotified};
+use some_executor::task::Task;
+use some_executor::{DynExecutor, SomeExecutor, SomeExecutorExt};
 use std::any::Any;
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::future::Future;
 use std::pin::Pin;
-use some_executor::{DynExecutor, SomeExecutor, SomeExecutorExt};
-use some_executor::observer::{FinishedObservation, Observer, ObserverNotified};
-use some_executor::task::Task;
 
 /// A runtime that polls futures in a busy loop using [`crate::spin_on`].
 ///
@@ -110,11 +110,14 @@ impl SomeExecutorExt for SpinRuntime {}
 impl SomeExecutor for SpinRuntime {
     type ExecutorNotifier = Infallible;
 
-    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output>
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(
+        &mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Observer<Value = F::Output>
     where
         Self: Sized,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         while task.poll_after() > crate::sys::time::Instant::now() {
             std::hint::spin_loop()
         }
@@ -123,12 +126,15 @@ impl SomeExecutor for SpinRuntime {
         observer
     }
 
-
-    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output> where
+    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(
+        &mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Observer<Value = F::Output>
+    where
         Self: Sized,
         F::Output: Send + Unpin,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         while spawned.poll_after() > crate::sys::time::Instant::now() {
             std::hint::spin_loop()
@@ -137,9 +143,16 @@ impl SomeExecutor for SpinRuntime {
         observer
     }
 
-
-    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>> {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+    fn spawn_objsafe(
+        &mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Observer<Value = Box<dyn Any + Send>, Output = FinishedObservation<Box<dyn Any + Send>>>,
+    > {
+        logwise::info_sync!("spawned future: {label}", label = task.label());
 
         let (spawned, observer) = task.spawn_objsafe(self);
         while spawned.poll_after() > crate::sys::time::Instant::now() {
@@ -149,13 +162,25 @@ impl SomeExecutor for SpinRuntime {
         Box::new(observer)
     }
 
-    fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+    fn spawn_objsafe_async<'s>(
+        &'s mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Future<
+                Output = Box<
+                    dyn Observer<
+                            Value = Box<dyn Any + Send>,
+                            Output = FinishedObservation<Box<dyn Any + Send>>,
+                        >,
+                >,
+            > + 's,
+    > {
         #[allow(clippy::async_yields_async)]
-        Box::new(async {
-            Self::spawn_objsafe(self, task)
-        })
+        Box::new(async { Self::spawn_objsafe(self, task) })
     }
-
 
     fn clone_box(&self) -> Box<DynExecutor> {
         Box::new(*self)
@@ -219,19 +244,20 @@ impl SleepRuntime {
         Self
     }
 }
-impl SomeExecutorExt for SleepRuntime {
-
-}
+impl SomeExecutorExt for SleepRuntime {}
 
 impl SomeExecutor for SleepRuntime {
     type ExecutorNotifier = Infallible;
 
-    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output>
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output>>(
+        &mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Observer<Value = F::Output>
     where
         Self: Sized,
         F::Output: Send,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         let now = crate::sys::time::Instant::now();
         if spawned.poll_after() > now {
@@ -242,12 +268,15 @@ impl SomeExecutor for SleepRuntime {
         observer
     }
 
-    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output>
+    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(
+        &mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Observer<Value = F::Output>
     where
         Self: Sized,
         F::Output: Send + Unpin,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         let now = crate::sys::time::Instant::now();
         if spawned.poll_after() > now {
@@ -258,8 +287,16 @@ impl SomeExecutor for SleepRuntime {
         observer
     }
 
-    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>> {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+    fn spawn_objsafe(
+        &mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Observer<Value = Box<dyn Any + Send>, Output = FinishedObservation<Box<dyn Any + Send>>>,
+    > {
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn_objsafe(self);
         let now = crate::sys::time::Instant::now();
         if spawned.poll_after() > now {
@@ -270,11 +307,24 @@ impl SomeExecutor for SleepRuntime {
         Box::new(observer)
     }
 
-    fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+    fn spawn_objsafe_async<'s>(
+        &'s mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Future<
+                Output = Box<
+                    dyn Observer<
+                            Value = Box<dyn Any + Send>,
+                            Output = FinishedObservation<Box<dyn Any + Send>>,
+                        >,
+                >,
+            > + 's,
+    > {
         #[allow(clippy::async_yields_async)]
-        Box::new(async {
-            Self::spawn_objsafe(self, task)
-        })
+        Box::new(async { Self::spawn_objsafe(self, task) })
     }
 
     fn clone_box(&self) -> Box<DynExecutor> {
@@ -285,7 +335,6 @@ impl SomeExecutor for SleepRuntime {
         None
     }
 }
-
 
 /// A runtime that spawns each future on a new OS thread using [`crate::spawn_on`].
 ///
@@ -319,7 +368,7 @@ impl SomeExecutor for SleepRuntime {
 ///     Configuration::default()
 /// );
 /// let observer = runtime.spawn(task);
-/// 
+///
 /// // The task runs in parallel
 /// observer.await;
 /// assert_eq!(results.lock().unwrap().len(), 1);
@@ -350,19 +399,20 @@ impl SpawnRuntime {
         Self
     }
 }
-impl SomeExecutorExt for SpawnRuntime {
-}
-
+impl SomeExecutorExt for SpawnRuntime {}
 
 impl SomeExecutor for SpawnRuntime {
     type ExecutorNotifier = Infallible;
 
-    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output>
+    fn spawn<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(
+        &mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Observer<Value = F::Output>
     where
         Self: Sized,
         F::Output: Send,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         std::thread::spawn(move || {
             if spawned.poll_after() > crate::sys::time::Instant::now() {
@@ -374,12 +424,15 @@ impl SomeExecutor for SpawnRuntime {
         observer
     }
 
-    fn spawn_async<'s, F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&'s mut self, task: Task<F, Notifier>) -> impl Future<Output=impl Observer<Value=F::Output>> + Send + 's
+    fn spawn_async<'s, F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(
+        &'s mut self,
+        task: Task<F, Notifier>,
+    ) -> impl Future<Output = impl Observer<Value = F::Output>> + Send + 's
     where
         Self: Sized,
         F::Output: Send + Unpin,
     {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         #[allow(clippy::async_yields_async)]
         async move {
             let (spawned, observer) = task.spawn(self);
@@ -394,8 +447,16 @@ impl SomeExecutor for SpawnRuntime {
         }
     }
 
-    fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>> {
-        logwise::info_sync!("spawned future: {label}", label=task.label());
+    fn spawn_objsafe(
+        &mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Observer<Value = Box<dyn Any + Send>, Output = FinishedObservation<Box<dyn Any + Send>>>,
+    > {
+        logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn_objsafe(self);
         std::thread::spawn(move || {
             if spawned.poll_after() > crate::sys::time::Instant::now() {
@@ -407,11 +468,24 @@ impl SomeExecutor for SpawnRuntime {
         Box::new(observer)
     }
 
-    fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+    fn spawn_objsafe_async<'s>(
+        &'s mut self,
+        task: Task<
+            Pin<Box<dyn Future<Output = Box<dyn Any + 'static + Send>> + 'static + Send>>,
+            Box<dyn ObserverNotified<dyn Any + Send> + Send>,
+        >,
+    ) -> Box<
+        dyn Future<
+                Output = Box<
+                    dyn Observer<
+                            Value = Box<dyn Any + Send>,
+                            Output = FinishedObservation<Box<dyn Any + Send>>,
+                        >,
+                >,
+            > + 's,
+    > {
         #[allow(clippy::async_yields_async)]
-        Box::new(async {
-            Self::spawn_objsafe(self, task)
-        })
+        Box::new(async { Self::spawn_objsafe(self, task) })
     }
 
     fn clone_box(&self) -> Box<DynExecutor> {
@@ -497,5 +571,3 @@ mod test {
         assert_send_sync::<super::SpawnRuntime>();
     }
 }
-
-

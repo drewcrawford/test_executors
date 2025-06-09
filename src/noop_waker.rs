@@ -13,8 +13,6 @@ static NOOP_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
     |_| (),
 );
 
-
-
 //error: `Waker::from_raw` is not yet stable as a const fn
 
 static NOOP_WAKER: OnceLock<Waker> = OnceLock::new();
@@ -31,4 +29,3 @@ Creates a new context that has no effect.
 pub fn new_context() -> Context<'static> {
     Context::from_waker(noop_waker())
 }
-

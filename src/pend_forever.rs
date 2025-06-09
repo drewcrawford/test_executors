@@ -9,7 +9,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-#[derive(Debug,Clone,Copy,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendForever;
 
 impl Future for PendForever {
@@ -20,11 +20,9 @@ impl Future for PendForever {
     }
 }
 
-
 //boilerplate
 impl Default for PendForever {
     fn default() -> Self {
         PendForever
     }
 }
-
