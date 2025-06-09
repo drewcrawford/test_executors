@@ -1,8 +1,49 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+//! Async runtime implementations for test executors.
+//!
+//! This module provides three runtime implementations that integrate with the
+//! [`some_executor`] ecosystem, making them suitable for use in executor-agnostic code.
+//!
+//! # Available Runtimes
+//!
+//! - [`SpinRuntime`] - Polls futures in a busy loop (highest performance, highest CPU usage)
+//! - [`SleepRuntime`] - Polls futures with sleeping between polls (balanced performance)
+//! - [`SpawnRuntime`] - Spawns each future on a new OS thread (best for parallel execution)
+//!
+//! # Example
+//!
+//! ```
+//! use test_executors::aruntime::SpinRuntime;
+//! use some_executor::{SomeExecutor, task::{Task, Configuration}};
+//!
+//! # test_executors::spin_on(async {
+//! let mut runtime = SpinRuntime::new();
+//! let task = Task::without_notifications(
+//!     "example".to_string(),
+//!     async { 42 },
+//!     Configuration::default()
+//! );
+//! let observer = runtime.spawn(task);
+//! if let some_executor::observer::FinishedObservation::Ready(value) = observer.await {
+//!     assert_eq!(value, 42);
+//! }
+//! # });
+//! ```
+//!
+//! # Integration with Global Executor
+//!
+//! You can set a runtime as the global executor using [`set_global_test_runtime`]:
+//!
+//! ```
+//! use test_executors::aruntime;
+//!
+//! aruntime::set_global_test_runtime();
+//! // Now some_executor::global_executor::spawn() will use SpawnRuntime
+//! ```
+
 use std::any::Any;
 use std::convert::Infallible;
-// SPDX-License-Identifier: MIT OR Apache-2.0
 use std::fmt::Display;
 use std::future::Future;
 use std::pin::Pin;
@@ -10,13 +51,56 @@ use some_executor::{DynExecutor, SomeExecutor, SomeExecutorExt};
 use some_executor::observer::{FinishedObservation, Observer, ObserverNotified};
 use some_executor::task::Task;
 
-/**
-A runtime based on [crate::spin_on]
-*/
+/// A runtime that polls futures in a busy loop using [`crate::spin_on`].
+///
+/// This runtime provides the lowest latency but highest CPU usage. It continuously
+/// polls futures without yielding the thread, making it ideal for CPU-bound tasks
+/// or scenarios where minimal latency is critical.
+///
+/// # Characteristics
+/// - **Latency**: Minimal - responds immediately to future readiness
+/// - **CPU Usage**: Maximum - continuously burns CPU cycles
+/// - **Blocking**: Yes - blocks the calling thread
+/// - **Concurrency**: No - executes one future at a time
+///
+/// # Example
+///
+/// ```
+/// use test_executors::aruntime::SpinRuntime;
+/// use some_executor::{SomeExecutor, task::{Task, Configuration}};
+///
+/// # test_executors::spin_on(async {
+/// let mut runtime = SpinRuntime::new();
+/// let task = Task::without_notifications(
+///     "example".to_string(),
+///     async { 42 },
+///     Configuration::default()
+/// );
+/// let observer = runtime.spawn(task);
+/// if let some_executor::observer::FinishedObservation::Ready(value) = observer.await {
+///     assert_eq!(value, 42);
+/// }
+/// # });
+/// ```
+///
+/// # When to Use
+/// - For CPU-bound async tasks
+/// - When you need minimal latency
+/// - In tests where deterministic behavior is important
+/// - For short-lived futures that complete quickly
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SpinRuntime;
 
 impl SpinRuntime {
+    /// Creates a new `SpinRuntime`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use test_executors::aruntime::SpinRuntime;
+    ///
+    /// let runtime = SpinRuntime::new();
+    /// ```
     pub const fn new() -> Self {
         Self
     }
@@ -84,12 +168,55 @@ impl SomeExecutor for SpinRuntime {
     }
 }
 
-/**
-A runtime based on [crate::sleep_on]
-*/
+/// A runtime that polls futures with sleeping between polls using [`crate::sleep_on`].
+///
+/// This runtime provides a balance between responsiveness and CPU efficiency. It uses
+/// a condition variable to sleep when futures return `Poll::Pending`, waking only when
+/// the waker is triggered.
+///
+/// # Characteristics
+/// - **Latency**: Moderate - wakes on waker notification
+/// - **CPU Usage**: Low - sleeps when waiting
+/// - **Blocking**: Yes - blocks the calling thread
+/// - **Concurrency**: No - executes one future at a time
+///
+/// # Example
+///
+/// ```
+/// use test_executors::aruntime::SleepRuntime;
+/// use some_executor::{SomeExecutor, task::{Task, Configuration}};
+///
+/// # test_executors::spin_on(async {
+/// let mut runtime = SleepRuntime::new();
+/// let task = Task::without_notifications(
+///     "io_task".to_string(),
+///     async { "completed".to_string() },
+///     Configuration::default()
+/// );
+/// let observer = runtime.spawn(task);
+/// if let some_executor::observer::FinishedObservation::Ready(value) = observer.await {
+///     assert_eq!(value, "completed");
+/// }
+/// # });
+/// ```
+///
+/// # When to Use
+/// - For I/O-bound async tasks
+/// - When you want to avoid burning CPU cycles
+/// - For longer-running futures
+/// - In tests that involve actual async I/O or timers
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SleepRuntime;
 impl SleepRuntime {
+    /// Creates a new `SleepRuntime`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use test_executors::aruntime::SleepRuntime;
+    ///
+    /// let runtime = SleepRuntime::new();
+    /// ```
     pub const fn new() -> Self {
         Self
     }
@@ -163,12 +290,65 @@ impl SomeExecutor for SleepRuntime {
 }
 
 
-/**
-A runtime based on [crate::spawn_on]
-*/
+/// A runtime that spawns each future on a new OS thread using [`crate::spawn_on`].
+///
+/// This runtime provides true parallelism by running each future on its own thread.
+/// It returns immediately after spawning, making it suitable for fire-and-forget tasks
+/// or when you need parallel execution.
+///
+/// # Characteristics
+/// - **Latency**: Low - returns immediately after spawning
+/// - **CPU Usage**: Efficient - only uses CPU when futures are ready
+/// - **Blocking**: No - doesn't block the calling thread
+/// - **Concurrency**: Yes - can run multiple futures in parallel
+///
+/// # Example
+///
+/// ```
+/// use test_executors::aruntime::SpawnRuntime;
+/// use some_executor::{SomeExecutor, task::{Task, Configuration}};
+/// use std::sync::{Arc, Mutex};
+///
+/// # test_executors::spin_on(async {
+/// let mut runtime = SpawnRuntime::new();
+/// let results = Arc::new(Mutex::new(Vec::new()));
+/// let results_clone = results.clone();
+///
+/// let task = Task::without_notifications(
+///     "parallel_task".to_string(),
+///     async move {
+///         results_clone.lock().unwrap().push(42);
+///     },
+///     Configuration::default()
+/// );
+/// let observer = runtime.spawn(task);
+/// 
+/// // The task runs in parallel
+/// observer.await;
+/// assert_eq!(results.lock().unwrap().len(), 1);
+/// # });
+/// ```
+///
+/// # When to Use
+/// - For tasks that should run in parallel
+/// - When you don't want to block the calling thread
+/// - For fire-and-forget operations
+/// - When you need true concurrency
+///
+/// # Thread Safety
+/// The futures spawned must be `Send` since they will be moved to another thread.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SpawnRuntime;
 impl SpawnRuntime {
+    /// Creates a new `SpawnRuntime`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use test_executors::aruntime::SpawnRuntime;
+    ///
+    /// let runtime = SpawnRuntime::new();
+    /// ```
     pub const fn new() -> Self {
         Self
     }
@@ -282,9 +462,28 @@ impl Default for SpawnRuntime {
     }
 }
 
-/**
-Sets a truntime as the global runtime.
-*/
+/// Sets a [`SpawnRuntime`] as the global executor for the `some_executor` ecosystem.
+///
+/// This function configures a `SpawnRuntime` instance as the global executor,
+/// allowing code that uses `some_executor::global_executor::spawn()` to automatically
+/// use this runtime for task execution.
+///
+/// # Example
+///
+/// ```
+/// use test_executors::aruntime;
+///
+/// // Set the global runtime
+/// aruntime::set_global_test_runtime();
+///
+/// // Now the global executor is available for use
+/// // via some_executor::global_executor::global_executor()
+/// ```
+///
+/// # Note
+/// This function uses `SpawnRuntime`, which creates a new thread for each spawned
+/// future. This provides good parallelism but may have higher overhead for many
+/// small tasks.
 pub fn set_global_test_runtime() {
     let as_dyn = Box::new(SpawnRuntime) as Box<DynExecutor>;
     some_executor::global_executor::set_global_executor(as_dyn)
