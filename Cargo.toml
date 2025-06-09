@@ -1,7 +1,7 @@
 [package]
 name = "test_executors"
 version = "0.3.2"
-edition = "2021"
+edition = "2024"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
 homepage = "https://sealedabstract.com/code/test_executors"
@@ -9,7 +9,7 @@ repository = "https://github.com/drewcrawford/test_executors"
 keywords = ["testing","async","await","future"]
 categories = ["asynchronous", "concurrency", "development-tools::testing"]
 exclude = [".*"]
-rust-version = "1.75.0"
+rust-version = "1.85.0"
 
 [dependencies]
 some_executor = "0.4"
