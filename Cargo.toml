@@ -13,16 +13,15 @@ rust-version = "1.75.0"
 
 [dependencies]
 some_executor = "0.4"
-priority = ">=0"
-logwise = "0.2.2"
-blocking_semaphore = ">=0"
+logwise = "0.2"
+blocking_semaphore = "0.1"
 test_executors_proc = "0.3.0"
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
 wasm-bindgen = "0.2"
-web-time = "1.1.0"
-wasm-bindgen-futures = "0.4.49"
+web-time = "1.1"
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.45"
+wasm-bindgen-test = "0.3"
