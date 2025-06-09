@@ -3,6 +3,8 @@
 This crate provides extremely simple, yet useful, async executors. They are primarily useful for writing unit tests
 without bringing in a full-blown executor such as [tokio](https://tokio.rs).
 
+![logo](../../../art/logo.png)
+
 # Quick Start
 
 ```
