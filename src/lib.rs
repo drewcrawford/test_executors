@@ -433,8 +433,7 @@ pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
 pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
     let mut context = new_context();
     let pinned = std::pin::pin!(future);
-    let output = pinned.poll(&mut context);
-    output
+    pinned.poll(&mut context)
 }
 
 #[cfg(test)] mod tests {

@@ -124,20 +124,17 @@ impl SomeExecutor for SpinRuntime {
     }
 
 
-    fn spawn_async<'s, F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&'s mut self, task: Task<F, Notifier>) -> impl Future<Output=impl Observer<Value=F::Output>> + Send + 's
-    where
+    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output> where
         Self: Sized,
         F::Output: Send + Unpin,
     {
-        async move {
-            logwise::info_sync!("spawned future: {label}", label=task.label());
-            let (spawned, observer) = task.spawn(self);
-            while spawned.poll_after() > crate::sys::time::Instant::now() {
-                std::hint::spin_loop()
-            }
-            crate::spin_on(spawned);
-            observer
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        while spawned.poll_after() > crate::sys::time::Instant::now() {
+            std::hint::spin_loop()
         }
+        crate::spin_on(spawned);
+        observer
     }
 
 
@@ -153,6 +150,7 @@ impl SomeExecutor for SpinRuntime {
     }
 
     fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+        #[allow(clippy::async_yields_async)]
         Box::new(async {
             Self::spawn_objsafe(self, task)
         })
@@ -244,22 +242,20 @@ impl SomeExecutor for SleepRuntime {
         observer
     }
 
-    fn spawn_async<'s, F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&'s mut self, task: Task<F, Notifier>) -> impl Future<Output=impl Observer<Value=F::Output>> + Send + 's
+    async fn spawn_async<F: Future + Send + 'static, Notifier: ObserverNotified<F::Output> + Send>(&mut self, task: Task<F, Notifier>) -> impl Observer<Value=F::Output>
     where
         Self: Sized,
         F::Output: Send + Unpin,
     {
-        async move {
-            logwise::info_sync!("spawned future: {label}", label=task.label());
-            let (spawned, observer) = task.spawn(self);
-            let now = crate::sys::time::Instant::now();
-            if spawned.poll_after() > now {
-                let dur = spawned.poll_after() - now;
-                std::thread::sleep(dur);
-            }
-            crate::sleep_on(spawned);
-            observer
+        logwise::info_sync!("spawned future: {label}", label=task.label());
+        let (spawned, observer) = task.spawn(self);
+        let now = crate::sys::time::Instant::now();
+        if spawned.poll_after() > now {
+            let dur = spawned.poll_after() - now;
+            std::thread::sleep(dur);
         }
+        crate::sleep_on(spawned);
+        observer
     }
 
     fn spawn_objsafe(&mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>> {
@@ -275,6 +271,7 @@ impl SomeExecutor for SleepRuntime {
     }
 
     fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+        #[allow(clippy::async_yields_async)]
         Box::new(async {
             Self::spawn_objsafe(self, task)
         })
@@ -383,6 +380,7 @@ impl SomeExecutor for SpawnRuntime {
         F::Output: Send + Unpin,
     {
         logwise::info_sync!("spawned future: {label}", label=task.label());
+        #[allow(clippy::async_yields_async)]
         async move {
             let (spawned, observer) = task.spawn(self);
             std::thread::spawn(move || {
@@ -410,6 +408,7 @@ impl SomeExecutor for SpawnRuntime {
     }
 
     fn spawn_objsafe_async<'s>(&'s mut self, task: Task<Pin<Box<dyn Future<Output=Box<dyn Any + 'static + Send>> + 'static + Send>>, Box<dyn ObserverNotified<dyn Any + Send> + Send>>) -> Box<dyn Future<Output=Box<dyn Observer<Value=Box<dyn Any + Send>, Output=FinishedObservation<Box<dyn Any + Send>>>>> + 's> {
+        #[allow(clippy::async_yields_async)]
         Box::new(async {
             Self::spawn_objsafe(self, task)
         })
