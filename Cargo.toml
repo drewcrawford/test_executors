@@ -1,6 +1,6 @@
 [package]
 name = "test_executors"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
