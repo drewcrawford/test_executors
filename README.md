@@ -28,9 +28,95 @@ assert_eq!(result, "Hello, async!");
 
 The crate provides three main executors:
 
-* `spin_on` - Polls a future in a busy loop on the current thread. Best for CPU-bound tasks or when latency is critical.
-* `sleep_on` - Polls a future on the current thread, sleeping between polls. Best for I/O-bound tasks to avoid burning CPU.
-* `spawn_on` - Spawns a future on a new thread, polling it there. Best for fire-and-forget tasks.
+### `spin_on`
+Polls a future in a busy loop on the current thread. Best for CPU-bound tasks or when latency is critical.
+
+**When to Use:**
+- When you need minimal latency
+- For CPU-bound async tasks
+- In tests where you want deterministic behavior
+- When the future is expected to complete quickly
+
+**Performance Note:** This executor will consume 100% CPU while waiting. For I/O-bound tasks or long-running futures, consider using `sleep_on` instead.
+
+```rust
+use test_executors::spin_on;
+
+let result = spin_on(async {
+    // Simulate some async work
+    let value = async { 21 }.await;
+    value * 2
+});
+assert_eq!(result, 42);
+```
+
+### `sleep_on`
+Polls a future on the current thread, sleeping between polls. Best for I/O-bound tasks to avoid burning CPU.
+
+**When to Use:**
+- For I/O-bound async tasks
+- When you want to avoid burning CPU cycles
+- For longer-running futures
+- In tests that involve actual async I/O or timers
+
+**Implementation Details:** The executor will properly handle spurious wakeups and re-poll the future as needed. The waker implementation uses a semaphore to signal readiness.
+
+```rust
+use test_executors::sleep_on;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+struct Counter {
+    count: u32,
+}
+
+impl Future for Counter {
+    type Output = u32;
+    
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.count += 1;
+        if self.count >= 3 {
+            Poll::Ready(self.count)
+        } else {
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
+    }
+}
+
+let result = sleep_on(Counter { count: 0 });
+assert_eq!(result, 3);
+```
+
+### `spawn_on`
+Spawns a future on a new thread, polling it there. Best for fire-and-forget tasks.
+
+This function creates a new OS thread with the given name and runs the future on that thread using `sleep_on`. The calling thread returns immediately, making this useful for fire-and-forget tasks.
+
+**Requirements:**
+- The future must be `Send` because it will be moved to another thread
+- The future must be `'static` because the spawned thread may outlive the caller
+
+```rust
+use test_executors::spawn_on;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+let data = Arc::new(Mutex::new(Vec::new()));
+let data_clone = data.clone();
+
+spawn_on("worker", async move {
+    // Simulate some async work
+    data_clone.lock().unwrap().push(42);
+});
+
+// Give the spawned thread time to complete
+std::thread::sleep(Duration::from_millis(50));
+
+// Check the result
+assert_eq!(*data.lock().unwrap(), vec![42]);
+```
 
 ## Platform Support
 
@@ -72,6 +158,62 @@ let mut runtime = SpinRuntime::new();
 ## Utilities
 
 The crate also provides utility functions and types:
-- `poll_once` and `poll_once_pin` - Poll a future exactly once
-- `spawn_local` - Platform-aware spawning that works on both native and WASM
-- `pend_forever::PendForever` - A future that is always pending (useful for testing)
+
+### `spawn_local`
+Platform-aware spawning that works on both native and WASM platforms.
+
+This function automatically selects the appropriate executor based on the target platform:
+- On native platforms: Uses `sleep_on` to run the future on the current thread
+- On `wasm32` targets: Uses `wasm_bindgen_futures::spawn_local` to integrate with the browser's event loop
+
+```rust
+use test_executors::spawn_local;
+
+spawn_local(async {
+    // This will run correctly on both native and WASM platforms
+    println!("Hello from async!");
+}, "example_task");
+```
+
+**Platform Behavior:**
+- **Native Platforms:** The future is executed immediately on the current thread using `sleep_on`. This blocks until the future completes.
+- **WebAssembly:** The future is scheduled to run on the browser's event loop and this function returns immediately.
+
+### `poll_once` and `poll_once_pin`
+Poll a future exactly once - useful for testing futures or implementing custom executors.
+
+#### `poll_once`
+Polls a pinned future exactly once and returns the result.
+
+```rust
+use test_executors::{poll_once, pend_forever::PendForever};
+use std::task::Poll;
+
+let mut future = PendForever;
+let result = poll_once(std::pin::Pin::new(&mut future));
+assert_eq!(result, Poll::Pending);
+```
+
+#### `poll_once_pin`
+Polls a future exactly once after pinning it (convenience function that takes ownership).
+
+```rust
+use test_executors::{poll_once_pin, pend_forever::PendForever};
+use std::task::Poll;
+
+let future = PendForever;
+let result = poll_once_pin(future);
+assert_eq!(result, Poll::Pending);
+```
+
+### `pend_forever::PendForever`
+A future that is always pending (useful for testing).
+
+```rust
+use test_executors::pend_forever::PendForever;
+use test_executors::poll_once_pin;
+use std::task::Poll;
+
+let future = PendForever;
+assert_eq!(poll_once_pin(future), Poll::Pending);
+```
