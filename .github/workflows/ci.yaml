@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         channel: [""]
-        features: ["some_executor"]
+        features: [""]
         target: [""]
         os: [ubuntu-latest]
 
