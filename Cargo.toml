@@ -26,6 +26,5 @@ web-time = "1.1"
 wasm-bindgen-futures = "0.4"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
-
-
+wasm-bindgen-test = "0.3"
 

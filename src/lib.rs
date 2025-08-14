@@ -90,6 +90,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
+/**
+Re-export `some_executor` crate to allow using this executor with `some_executor` traits.
+*/
+pub use some_executor;
 pub use test_executors_proc::async_test;
 
 extern crate self as test_executors;
@@ -274,7 +278,8 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 /// - [`spawn_local`] for a platform-aware version that works on WASM
 pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F) {
     let prior_context = logwise::context::Context::current();
-    let new_context = logwise::context::Context::new_task(Some(prior_context), thread_name.to_string());
+    let new_context =
+        logwise::context::Context::new_task(Some(prior_context), thread_name.to_string());
     std::thread::Builder::new()
         .name(thread_name.to_string())
         .spawn(move || {
