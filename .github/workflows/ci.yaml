@@ -19,11 +19,13 @@ jobs:
         target: [""]
         os: [ubuntu-latest]
 
-        include:
-          # only linux build contains wasm32 build
-          - channel: "+nightly"
-            target: "wasm32-unknown-unknown"
-            os: "ubuntu-latest"
+        exclude:
+          - target: "wasm32-unknown-unknown"
+            os: macos-latest
+          - target: "wasm32-unknown-unknown"
+            os: windows-latest
+          - target: "wasm32-unknown-unknown"
+            channel: ""
 
     steps:
       - uses: actions/checkout@v4
