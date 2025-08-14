@@ -61,6 +61,8 @@ jobs:
           fi
           echo "features=${FEATURES_ARG}" >> "$GITHUB_OUTPUT"
           echo "target=${TARGET_ARG}"   >> "$GITHUB_OUTPUT"
+          echo "features are ${FEATURES_ARG}"
+          echo "target is ${TARGET_ARG}"
 
       #      - name: Github update Rust
       #        if: runner.os == 'Linux' && !(env.GITEA_ACTIONS == 'true')
