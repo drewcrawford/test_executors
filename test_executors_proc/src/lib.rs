@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 extern crate proc_macro;
-use proc_macro::TokenStream;
+use proc_macro::{TokenStream, Span};
+
+use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{quote, format_ident};
 use syn::{parse_macro_input, ItemFn};
 
@@ -46,9 +48,21 @@ pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    // Figure out how wasm-bindgen-test is named in the caller.
+    // In this way we can ship our version and not rely on the user to have it in their Cargo.toml.
+    let wasm_crate = match crate_name("wasm_bindgen_test") {
+        Ok(FoundCrate::Itself) | Err(_) => {
+            // If the crate is itself wasm-bindgen-test, we can use it directly
+            syn::Ident::new("wasm_bindgen_test", Span::call_site().into())
+        }
+        Ok(FoundCrate::Name(name)) => {
+            syn::Ident::new(&name, Span::call_site().into())
+        }
+    };
+
     // Generate output for wasm32 targets (use `wasm_bindgen_test`)
     let wasm_output = quote! {
-        #[::wasm_bindgen_test::wasm_bindgen_test]
+        #[#wasm_crate::wasm_bindgen_test]
         #input
     };
 

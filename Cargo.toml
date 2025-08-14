@@ -12,10 +12,12 @@ exclude = [".*"]
 rust-version = "1.85.1"
 
 [dependencies]
-some_executor = "0.5.1"
-logwise = "0.2"
+some_executor = "0.6.0"
+logwise = "0.3"
 blocking_semaphore = "0.1"
 test_executors_proc = "0.3.0"
+
+[dev-dependencies]
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
@@ -24,4 +26,6 @@ web-time = "1.1"
 wasm-bindgen-futures = "0.4"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+
+
+
