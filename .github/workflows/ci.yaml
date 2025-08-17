@@ -7,7 +7,7 @@ env:
 
 jobs:
   ci:
-    name: Build (${{ matrix.os }} ${{ matrix.channel }} ${{ matrix.target }} ${{ matrix.features }})
+    name: Build (${{ matrix.os }} ${{ matrix.cwd }} ${{ matrix.channel }} ${{ matrix.target }} ${{ matrix.features }})
 
     runs-on: ${{matrix.os}}
 
