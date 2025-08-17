@@ -90,16 +90,16 @@ jobs:
           rustup ${{ matrix.channel }} component add rust-src
 
       - name: rustfmt
-        run: cd ${{ matric.cwd}} && cargo ${{ matrix.channel }} --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" fmt --check
+        run: cd ${{ matrix.cwd }} && cargo ${{ matrix.channel }} --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" fmt --check
 
       - name: cargo check
-        run: cd ${{ matric.cwd}} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3"  check ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
+        run: cd ${{ matrix.cwd }} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3"  check ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
 
       - name: clippy
-        run: cd ${{ matric.cwd}} && cargo ${{ matrix.channel }} --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" clippy --no-deps ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
+        run: cd ${{ matrix.cwd }} && cargo ${{ matrix.channel }} --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" clippy --no-deps ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
 
       - name: docs
-        run: cd ${{ matric.cwd}} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" doc ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
+        run: cd ${{ matrix.cwd }} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" doc ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
 
       - name: tests
-        run: cd ${{ matric.cwd}} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" test ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
+        run: cd ${{ matrix.cwd }} && cargo ${{ matrix.channel }}  --config "$FATAL_WARNINGS_1"  --config "$FATAL_WARNINGS_2"  --config "$FATAL_WARNINGS_3" test ${{ steps.args.outputs.features }} ${{ steps.args.outputs.target }}
