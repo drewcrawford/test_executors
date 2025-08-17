@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 extern crate proc_macro;
-use proc_macro::{TokenStream, Span};
+use proc_macro::{Span, TokenStream};
 
-use proc_macro_crate::{crate_name, FoundCrate};
-use quote::{quote, format_ident};
-use syn::{parse_macro_input, ItemFn};
+use proc_macro_crate::{FoundCrate, crate_name};
+use quote::{format_ident, quote};
+use syn::{ItemFn, parse_macro_input};
 
 /**
 A procedural macro that converts an async function into a test function.
@@ -55,9 +55,7 @@ pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
             // If the crate is itself wasm-bindgen-test, we can use it directly
             syn::Ident::new("wasm_bindgen_test", Span::call_site().into())
         }
-        Ok(FoundCrate::Name(name)) => {
-            syn::Ident::new(&name, Span::call_site().into())
-        }
+        Ok(FoundCrate::Name(name)) => syn::Ident::new(&name, Span::call_site().into()),
     };
 
     // Generate output for wasm32 targets (use `wasm_bindgen_test`)
