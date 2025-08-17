@@ -19,13 +19,10 @@ jobs:
         target: [""]
         os: [ubuntu-latest]
 
-        exclude:
-          - target: "wasm32-unknown-unknown"
-            os: macos-latest
-          - target: "wasm32-unknown-unknown"
-            os: windows-latest
-          - target: "wasm32-unknown-unknown"
-            channel: ""
+        include:
+          - os: ubuntu-latest
+            channel: "+nightly"
+            target: "wasm32-unknown-unknown"
 
     steps:
       - uses: actions/checkout@v4
