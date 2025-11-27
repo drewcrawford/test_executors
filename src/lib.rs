@@ -84,10 +84,9 @@ pub mod pend_forever;
 mod sys;
 
 use crate::noop_waker::new_context;
-use blocking_semaphore::one::Semaphore;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 /**
@@ -137,27 +136,60 @@ pub fn spin_on<F: Future>(mut future: F) -> F::Output {
 }
 
 struct SimpleWakeShared {
-    semaphore: Semaphore,
+    /// Flag indicating whether a wake has been signaled.
+    /// Acts as a "sticky" notification - once set, it stays set until consumed.
+    woken: Mutex<bool>,
+    condvar: Condvar,
+}
+
+impl SimpleWakeShared {
+    fn new() -> Self {
+        Self {
+            woken: Mutex::new(false),
+            condvar: Condvar::new(),
+        }
+    }
+
+    /// Signal that the future should be polled again.
+    /// This is safe to call even if no one is waiting yet - the flag preserves the wake.
+    fn signal(&self) {
+        let mut guard = self.woken.lock().unwrap();
+        *guard = true;
+        self.condvar.notify_one();
+    }
+
+    /// Wait until signaled. Resets the flag after waking.
+    fn wait(&self) {
+        let mut guard = self.woken.lock().unwrap();
+        while !*guard {
+            guard = self.condvar.wait(guard).unwrap();
+        }
+        *guard = false;
+    }
 }
 
 static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
+    // clone
     |ctx| {
         let ctx = unsafe { Arc::from_raw(ctx as *const SimpleWakeShared) };
         let ctx2 = ctx.clone();
         std::mem::forget(ctx);
         RawWaker::new(Arc::into_raw(ctx2) as *const (), &CONDVAR_WAKER_VTABLE)
     },
+    // wake (takes ownership)
     |ctx| {
         let ctx = unsafe { Arc::from_raw(ctx as *const SimpleWakeShared) };
         logwise::trace_sync!("waking");
-        ctx.semaphore.signal_if_needed();
+        ctx.signal();
     },
+    // wake_by_ref
     |ctx| {
         let ctx = unsafe { Arc::from_raw(ctx as *const SimpleWakeShared) };
         logwise::trace_sync!("waking (by ref)");
-        ctx.semaphore.signal_if_needed();
+        ctx.signal();
         std::mem::forget(ctx);
     },
+    // drop
     |ctx| {
         let ctx = unsafe { Arc::from_raw(ctx as *const SimpleWakeShared) };
         std::mem::drop(ctx);
@@ -208,20 +240,11 @@ static CONDVAR_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(
 /// as needed. The waker implementation uses a semaphore to signal readiness.
 pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
     //we inherit the parent dlog::context here.
-    let shared = Arc::new(SimpleWakeShared {
-        semaphore: Semaphore::new(false),
-    });
+    let shared = Arc::new(SimpleWakeShared::new());
     let local = shared.clone();
     let raw_waker = RawWaker::new(Arc::into_raw(shared) as *const (), &CONDVAR_WAKER_VTABLE);
     let waker = unsafe { Waker::from_raw(raw_waker) };
     let mut context = Context::from_waker(&waker);
-    /*
-    per docs,
-    any calls to notify_one or notify_all which happen logically
-    after the mutex is unlocked are candidates to wake this thread
-
-    ergo, the lock must be locked when polling.
-     */
     let mut future = unsafe { Pin::new_unchecked(&mut future) };
 
     loop {
@@ -231,7 +254,9 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
             return val;
         }
         logwise::trace_sync!("future is not ready");
-        local.semaphore.wait();
+        // The boolean flag in SimpleWakeShared acts as a "sticky" notification,
+        // so wakes that happen during poll() are not lost.
+        local.wait();
         logwise::trace_sync!("woken");
     }
 }
