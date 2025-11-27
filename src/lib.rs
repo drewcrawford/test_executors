@@ -301,8 +301,12 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 /// - [`spawn_local`] for a platform-aware version that works on WASM
 pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F) {
     let prior_context = logwise::context::Context::current();
-    let new_context =
-        logwise::context::Context::new_task(Some(prior_context), thread_name.to_string());
+    let new_context = logwise::context::Context::new_task(
+        Some(prior_context),
+        thread_name.to_string(),
+        logwise::Level::Info,
+        true,
+    );
     std::thread::Builder::new()
         .name(thread_name.to_string())
         .spawn(move || {
@@ -355,7 +359,12 @@ pub fn spawn_local<F: Future + 'static>(future: F, _debug_label: &'static str) {
     #[cfg(target_arch = "wasm32")]
     {
         let c = logwise::context::Context::current();
-        let new_context = logwise::context::Context::new_task(Some(c), _debug_label.to_string());
+        let new_context = logwise::context::Context::new_task(
+            Some(c),
+            _debug_label.to_string(),
+            logwise::Level::Info,
+            true,
+        );
         wasm_bindgen_futures::spawn_local(async move {
             logwise::context::ApplyContext::new(new_context, future).await;
         });
