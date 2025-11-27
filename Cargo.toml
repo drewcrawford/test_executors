@@ -13,7 +13,7 @@ rust-version = "1.88.0"
 
 [dependencies]
 some_executor = "0.6.0"
-logwise = "0.3"
+logwise = "0.4.0"
 test_executors_proc = "0.3.0"
 
 [dev-dependencies]
