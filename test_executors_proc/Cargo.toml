@@ -6,6 +6,8 @@ license = "MIT OR Apache-2.0"
 description = "Procmacro for test executors"
 homepage = "https://sealedabstract.com/code/test_executors"
 repository = "https://github.com/drewcrawford/test_executors"
+keywords = ["testing","async","await"]
+categories = ["development-tools::testing"]
 
 [lib]
 proc-macro = true
