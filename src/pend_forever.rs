@@ -9,6 +9,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+/// A future that never completes.
+///
+/// This future always returns `Poll::Pending` when polled, making it useful for
+/// testing executor behavior or as a placeholder in "todo"-style workflows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendForever;
 
