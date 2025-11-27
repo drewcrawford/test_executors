@@ -74,13 +74,11 @@ let mut runtime = SpinRuntime::new();
 The crate also provides utility functions and types:
 - [`poll_once`] and [`poll_once_pin`] - Poll a future exactly once
 - [`spawn_local`] - Platform-aware spawning that works on both native and WASM
-- [`pend_forever::PendForever`] - A future that is always pending (useful for testing)
 
 */
 
 pub mod aruntime;
 mod noop_waker;
-pub mod pend_forever;
 mod sys;
 
 use crate::noop_waker::new_context;
@@ -378,10 +376,10 @@ pub fn spawn_local<F: Future + 'static>(future: F, _debug_label: &'static str) {
 ///
 /// # Example
 /// ```
-/// use test_executors::{poll_once, pend_forever::PendForever};
+/// use test_executors::poll_once;
 /// use std::task::Poll;
 ///
-/// let mut future = PendForever;
+/// let mut future = std::future::pending::<()>();
 /// let result = poll_once(std::pin::Pin::new(&mut future));
 /// assert_eq!(result, Poll::Pending);
 /// ```
@@ -439,10 +437,10 @@ pub fn poll_once<F: Future>(future: Pin<&mut F>) -> Poll<F::Output> {
 ///
 /// # Example
 /// ```
-/// use test_executors::{poll_once_pin, pend_forever::PendForever};
+/// use test_executors::poll_once_pin;
 /// use std::task::Poll;
 ///
-/// let future = PendForever;
+/// let future = std::future::pending::<()>();
 /// let result = poll_once_pin(future);
 /// assert_eq!(result, Poll::Pending);
 /// ```
@@ -474,7 +472,6 @@ pub fn poll_once_pin<F: Future>(future: F) -> Poll<F::Output> {
 
 #[cfg(test)]
 mod tests {
-    use crate::pend_forever::PendForever;
     use std::future::Future;
     use std::task::Poll;
 
@@ -511,7 +508,7 @@ mod tests {
 
     #[test]
     fn poll_once_test() {
-        let f = PendForever;
+        let f = std::future::pending::<()>();
         let mut pinned = std::pin::pin!(f);
         let result = super::poll_once(pinned.as_mut());
         assert_eq!(result, Poll::Pending);

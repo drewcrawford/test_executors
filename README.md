@@ -186,10 +186,10 @@ Poll a future exactly once - useful for testing futures or implementing custom e
 Polls a pinned future exactly once and returns the result.
 
 ```rust
-use test_executors::{poll_once, pend_forever::PendForever};
+use test_executors::poll_once;
 use std::task::Poll;
 
-let mut future = PendForever;
+let mut future = std::future::pending::<()>();
 let result = poll_once(std::pin::Pin::new(&mut future));
 assert_eq!(result, Poll::Pending);
 ```
@@ -198,22 +198,10 @@ assert_eq!(result, Poll::Pending);
 Polls a future exactly once after pinning it (convenience function that takes ownership).
 
 ```rust
-use test_executors::{poll_once_pin, pend_forever::PendForever};
-use std::task::Poll;
-
-let future = PendForever;
-let result = poll_once_pin(future);
-assert_eq!(result, Poll::Pending);
-```
-
-### `pend_forever::PendForever`
-A future that is always pending (useful for testing).
-
-```rust
-use test_executors::pend_forever::PendForever;
 use test_executors::poll_once_pin;
 use std::task::Poll;
 
-let future = PendForever;
-assert_eq!(poll_once_pin(future), Poll::Pending);
+let future = std::future::pending::<()>();
+let result = poll_once_pin(future);
+assert_eq!(result, Poll::Pending);
 ```
