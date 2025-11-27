@@ -52,52 +52,45 @@ jobs:
 
       - name: rustfmt
         run: |
-          if [ "${{ matrix.target }}" = "wasm32" ]; then
-            cd ${{ matrix.cwd }} && cargo +nightly fmt --check
+          if [ "${{ matrix.cwd }}" = "." ]; then
+            scripts/fmt
           else
-            cd ${{ matrix.cwd }} && cargo fmt --check
+            cd ${{ matrix.cwd }} && ../scripts/fmt
           fi
-        env:
-          RUSTFLAGS: "-Dwarnings"
 
       - name: cargo check
         run: |
-          if [ "${{ matrix.target }}" = "wasm32" ]; then
-            cd ${{ matrix.cwd }} && cargo +nightly check --target wasm32-unknown-unknown
-          else
-            cd ${{ matrix.cwd }} && cargo check
+          # we need ssh-add here to load local deps
+          if [[ "$GITEA_ACTIONS" == "true" ]]; then
+            eval `ssh-agent`
+            ssh-add
           fi
-        env:
-          RUSTFLAGS: "-Dwarnings"
-          RUSTDOCFLAGS: "-Dwarnings"
+          if [ "${{ matrix.cwd }}" = "." ]; then
+            scripts/${{ matrix.target }}/check
+          else
+            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/check
+          fi
 
       - name: clippy
         run: |
-          if [ "${{ matrix.target }}" = "wasm32" ]; then
-            cd ${{ matrix.cwd }} && cargo +nightly clippy --no-deps --target wasm32-unknown-unknown
+          if [ "${{ matrix.cwd }}" = "." ]; then
+            scripts/${{ matrix.target }}/clippy
           else
-            cd ${{ matrix.cwd }} && cargo clippy --no-deps
+            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/clippy
           fi
-        env:
-          RUSTFLAGS: "-Dwarnings"
 
       - name: tests
         run: |
-          if [ "${{ matrix.target }}" = "wasm32" ]; then
-            cd ${{ matrix.cwd }} && cargo +nightly test --target wasm32-unknown-unknown
+          if [ "${{ matrix.cwd }}" = "." ]; then
+            scripts/${{ matrix.target }}/tests
           else
-            cd ${{ matrix.cwd }} && cargo test
+            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/tests
           fi
-        env:
-          RUSTFLAGS: "-Dwarnings"
 
       - name: docs
         run: |
-          if [ "${{ matrix.target }}" = "wasm32" ]; then
-            cd ${{ matrix.cwd }} && cargo +nightly doc --target wasm32-unknown-unknown
+          if [ "${{ matrix.cwd }}" = "." ]; then
+            scripts/${{ matrix.target }}/docs
           else
-            cd ${{ matrix.cwd }} && cargo doc
+            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/docs
           fi
-        env:
-          RUSTFLAGS: "-Dwarnings"
-          RUSTDOCFLAGS: "-Dwarnings"
