@@ -1,25 +1,16 @@
-# matrix v9
+# matrix v10
 on: [push,pull_request]
 jobs:
   ci:
-    name: Build (${{ matrix.os }} ${{ matrix.cwd }} ${{ matrix.target }})
+    name: Build (${{ matrix.os }} ${{ matrix.target }})
 
     runs-on: ${{matrix.os}}
 
 
     strategy:
       matrix:
-        target: [ "native" ]
-        cwd: [".","test_executors_proc"]
+        target: [ "native", "wasm32" ]
         os: [ ubuntu-latest ]
-
-        include:
-          - os: ubuntu-latest
-            target: "wasm32"
-            cwd: "."
-          - os: ubuntu-latest
-            target: "wasm32"
-            cwd: "test_executors_proc"
 
     steps:
       - uses: actions/checkout@v4
@@ -51,12 +42,7 @@ jobs:
           rustup +nightly component add rust-src
 
       - name: rustfmt
-        run: |
-          if [ "${{ matrix.cwd }}" = "." ]; then
-            scripts/fmt
-          else
-            cd ${{ matrix.cwd }} && ../scripts/fmt
-          fi
+        run: scripts/fmt
 
       - name: cargo check
         run: |
@@ -65,32 +51,13 @@ jobs:
             eval `ssh-agent`
             ssh-add
           fi
-          if [ "${{ matrix.cwd }}" = "." ]; then
-            scripts/${{ matrix.target }}/check
-          else
-            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/check
-          fi
+          scripts/${{ matrix.target }}/check
 
       - name: clippy
-        run: |
-          if [ "${{ matrix.cwd }}" = "." ]; then
-            scripts/${{ matrix.target }}/clippy
-          else
-            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/clippy
-          fi
+        run: scripts/${{ matrix.target }}/clippy
 
       - name: tests
-        run: |
-          if [ "${{ matrix.cwd }}" = "." ]; then
-            scripts/${{ matrix.target }}/tests
-          else
-            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/tests
-          fi
+        run: scripts/${{ matrix.target }}/tests
 
       - name: docs
-        run: |
-          if [ "${{ matrix.cwd }}" = "." ]; then
-            scripts/${{ matrix.target }}/docs
-          else
-            cd ${{ matrix.cwd }} && ../scripts/${{ matrix.target }}/docs
-          fi
+        run: scripts/${{ matrix.target }}/docs
