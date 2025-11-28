@@ -20,7 +20,7 @@ test_executors_proc = "0.3.0"
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.106"
 web-time = "1.1"
 wasm-bindgen-futures = "0.4"
 
