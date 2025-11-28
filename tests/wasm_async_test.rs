@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // Test file to reproduce async_test bug on wasm32
 
 use test_executors::async_test;
