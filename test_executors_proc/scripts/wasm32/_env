@@ -1,0 +1,12 @@
+# Sourced by wasm32 scripts to set up RUSTFLAGS
+# Proc-macro crates compile for host, not target, so we don't need
+# the wasm32-specific rustflags. We just set warning flags.
+
+# Add -D warnings unless RELAXED_WARNINGS is set
+WARN_FLAGS=""
+if [ -z "$RELAXED_WARNINGS" ]; then
+    WARN_FLAGS="-D warnings"
+fi
+
+export WASM32_RUSTFLAGS="$WARN_FLAGS"
+export WASM32_RUSTDOCFLAGS="$WARN_FLAGS"

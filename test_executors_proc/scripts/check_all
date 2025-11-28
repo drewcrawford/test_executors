@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(dirname "$0")"
+
+echo "fmt check"
+"$SCRIPT_DIR/fmt"
+echo "check"
+"$SCRIPT_DIR/check" "$@"
+echo "clippy"
+"$SCRIPT_DIR/clippy" "$@"
+echo "tests"
+"$SCRIPT_DIR/tests" "$@"
+echo "docs"
+"$SCRIPT_DIR/docs" "$@"

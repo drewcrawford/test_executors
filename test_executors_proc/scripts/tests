@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(dirname "$0")"
+"$SCRIPT_DIR/native/tests" "$@"
+"$SCRIPT_DIR/wasm32/tests" "$@"
