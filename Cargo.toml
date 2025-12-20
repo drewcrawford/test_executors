@@ -15,17 +15,17 @@ rust-version = "1.88.0"
 logwise_internal = []
 
 [dependencies]
-some_executor = "0.6.0"
+some_executor = "0.6.2"
 logwise = "0.5.0"
-test_executors_proc = "0.3.0"
+test_executors_proc = "0.3.5"
 
 [dev-dependencies]
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
 wasm-bindgen = "0.2.106"
-web-time = "1.1"
-wasm-bindgen-futures = "0.4"
+web-time = "1.1.0"
+wasm-bindgen-futures = "0.4.56"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = "0.3.56"
