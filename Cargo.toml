@@ -9,7 +9,7 @@ repository = "https://github.com/drewcrawford/test_executors"
 keywords = ["testing","async","await","future"]
 categories = ["asynchronous", "concurrency", "development-tools::testing"]
 exclude = [".*"]
-rust-version = "1.88.0"
+rust-version = "1.85.1"
 
 [features]
 logwise_internal = []
