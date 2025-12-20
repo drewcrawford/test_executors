@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-12-20
+
 ### Changed
 - Freshened up our dependencies to their latest versions. Behind the scenes, we upgraded to `some_executor` 0.6.2, `logwise` 0.5.0, and `test_executors_proc` 0.3.5. For our WASM friends, we also pinned exact versions of `wasm-bindgen`, `web-time`, `wasm-bindgen-futures`, and `wasm-bindgen-test` to keep everything playing nicely together.
+- Relaxed the minimum supported Rust version (MSRV) from 1.88.0 to 1.85.1, making it easier for more projects to adopt test_executors.
+
+### Added
+- Added optional `logwise_internal` feature for internal logging support.
 
 ## [0.4.0] - 2025-11-28
 
