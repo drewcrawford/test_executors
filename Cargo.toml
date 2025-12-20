@@ -11,6 +11,9 @@ categories = ["asynchronous", "concurrency", "development-tools::testing"]
 exclude = [".*"]
 rust-version = "1.88.0"
 
+[features]
+logwise_internal = []
+
 [dependencies]
 some_executor = "0.6.0"
 logwise = "0.4.0"

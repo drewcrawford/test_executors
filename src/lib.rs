@@ -86,12 +86,13 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Condvar, Mutex};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-
+use logwise::declare_logging_domain;
 /**
 Re-export `some_executor` crate to allow using this executor with `some_executor` traits.
 */
 pub use some_executor;
 pub use test_executors_proc::async_test;
+declare_logging_domain!();
 
 extern crate self as test_executors;
 
