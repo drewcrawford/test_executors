@@ -12,8 +12,10 @@ A procedural macro that converts an async function into a test function.
 
 On most platforms, the test function generates a stub function that uses the sleep_on runtime.
 
-On wasm32 targets, this macro is equivalent to `#[wasm_bindgen_test::wasm_bindgen_test]`. This is because
-it is generally not allowed to block the main thread in a browser environment.
+On wasm32 targets it generates a `#[wasm_lite::wasm_lite_test]` entry point that hands the future to
+`wasm_lite_std::async_doctest!`, which spawns it on the event loop and reports the verdict when it
+settles. The sleep_on path is not usable there: blocking the browser main thread is forbidden
+(`Atomics.wait` traps), which is why this is a different shape rather than the same one.
 
 # Example
 ```rust
@@ -25,6 +27,18 @@ async fn hello_world() {
 }
 ```
 */
+/// How the caller names `crate_name`, falling back to the canonical name.
+///
+/// Lets a consumer rename the dependency without the generated code breaking.
+fn resolve(crate_name_str: &str) -> syn::Ident {
+    match crate_name(crate_name_str) {
+        Ok(FoundCrate::Itself) | Err(_) => {
+            syn::Ident::new(crate_name_str, Span::call_site().into())
+        }
+        Ok(FoundCrate::Name(name)) => syn::Ident::new(&name, Span::call_site().into()),
+    }
+}
+
 #[proc_macro_attribute]
 pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree
@@ -36,41 +50,40 @@ pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Generate a new name for the test function by prefixing "async_test_"
     let test_fn_name = format_ident!("async_test_{}", fn_name);
 
-    // Generate output for non-WASM targets (e.g., using `test_executors::sleep_on`)
-    let non_wasm_output = quote! {
-        // Original async function (not compiled into the test)
+    // Figure out how the wasm_lite crates are named in the caller, so a rename
+    // (or a re-export under another name) still resolves.
+    let wl = resolve("wasm_lite");
+    let wls = resolve("wasm_lite_std");
+
+    // One `#[cfg]` per *item*. A `#[cfg]` in front of an interpolated block only
+    // guards that block's **first** item, which is why the async fn is emitted
+    // once here rather than inside each arm — previously the non-wasm entry
+    // point was generated unconditionally and only looked gated.
+    //
+    // `#[cfg]` also has to come before the test attribute so the item is
+    // stripped before that macro runs; otherwise the wasm arm's
+    // `wasm_lite::wasm_lite_test` is resolved on native, where it does not
+    // exist.
+    let output = quote! {
         #input
 
-        // Generated synchronous test function with a new name
+        #[cfg(not(target_arch = "wasm32"))]
         #[test]
         fn #test_fn_name() {
             ::test_executors::sleep_on(#fn_name())
         }
-    };
 
-    // Figure out how wasm-bindgen-test is named in the caller.
-    // In this way we can ship our version and not rely on the user to have it in their Cargo.toml.
-    let wasm_crate = match crate_name("wasm-bindgen-test") {
-        Ok(FoundCrate::Itself) | Err(_) => {
-            // If the crate is itself wasm-bindgen-test, we can use it directly
-            syn::Ident::new("wasm_bindgen_test", Span::call_site().into())
-        }
-        Ok(FoundCrate::Name(name)) => syn::Ident::new(&name, Span::call_site().into()),
-    };
-
-    // Generate output for wasm32 targets (use `wasm_bindgen_test`)
-    let wasm_output = quote! {
-        #[#wasm_crate::wasm_bindgen_test]
-        #input
-    };
-
-    // Use `cfg` attributes to conditionally compile the correct output
-    let output = quote! {
+        // `#[wasm_lite_test]` rejects an `async fn` on purpose — the future
+        // would be built and dropped unpolled, so the test could never fail.
+        // A sync entry point drives it instead, mirroring the arm above.
+        // `async_doctest!` marks the test pending, spawns the future on the
+        // event loop and passes when it settles; it does not block, which the
+        // browser main thread would not permit.
         #[cfg(target_arch = "wasm32")]
-        #wasm_output
-
-        #[cfg(not(target_arch = "wasm32"))]
-        #non_wasm_output
+        #[#wl::wasm_lite_test(crate = ::#wl)]
+        fn #test_fn_name() {
+            #wls::async_doctest!(#fn_name());
+        }
     };
 
     TokenStream::from(output)
