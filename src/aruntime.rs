@@ -239,7 +239,7 @@ impl SomeExecutor for SleepRuntime {
         let (spawned, observer) = task.spawn(self);
         let now = crate::sys::time::Instant::now();
         if spawned.poll_after() > now {
-            let dur = now.duration_since(spawned.poll_after());
+            let dur = spawned.poll_after() - now;
             std::thread::sleep(dur);
         }
         crate::sleep_on(spawned);
@@ -270,7 +270,7 @@ impl SomeExecutor for SleepRuntime {
         let (spawned, observer) = task.spawn_objsafe(self);
         let now = crate::sys::time::Instant::now();
         if spawned.poll_after() > now {
-            let dur = now.duration_since(spawned.poll_after());
+            let dur = spawned.poll_after() - now;
             std::thread::sleep(dur);
         }
         crate::sleep_on(spawned);
@@ -370,8 +370,9 @@ impl SomeExecutor for SpawnRuntime {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         std::thread::spawn(move || {
-            if spawned.poll_after() > crate::sys::time::Instant::now() {
-                let dur = crate::sys::time::Instant::now().duration_since(spawned.poll_after());
+            let now = crate::sys::time::Instant::now();
+            if spawned.poll_after() > now {
+                let dur = spawned.poll_after() - now;
                 std::thread::sleep(dur);
             }
             crate::sleep_on(spawned);
@@ -406,8 +407,9 @@ impl SomeExecutor for SpawnRuntime {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn_objsafe(self);
         std::thread::spawn(move || {
-            if spawned.poll_after() > crate::sys::time::Instant::now() {
-                let dur = crate::sys::time::Instant::now().duration_since(spawned.poll_after());
+            let now = crate::sys::time::Instant::now();
+            if spawned.poll_after() > now {
+                let dur = spawned.poll_after() - now;
                 std::thread::sleep(dur);
             }
             crate::sleep_on(spawned);
