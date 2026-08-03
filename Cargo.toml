@@ -18,7 +18,7 @@ logwise_internal = []
 some_executor = "0.6.3"
 wasm_lite_std = { path = "../wasm_lite/crates/wasm_lite_std" }
 logwise = "0.5.0"
-test_executors_proc = "0.3.5"
+test_executors_proc = { version = "0.3.5", path = "test_executors_proc" }
 
 [dev-dependencies]
 
