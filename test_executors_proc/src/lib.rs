@@ -50,7 +50,7 @@ pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Figure out how wasm-bindgen-test is named in the caller.
     // In this way we can ship our version and not rely on the user to have it in their Cargo.toml.
-    let wasm_crate = match crate_name("wasm_bindgen_test") {
+    let wasm_crate = match crate_name("wasm-bindgen-test") {
         Ok(FoundCrate::Itself) | Err(_) => {
             // If the crate is itself wasm-bindgen-test, we can use it directly
             syn::Ident::new("wasm_bindgen_test", Span::call_site().into())
