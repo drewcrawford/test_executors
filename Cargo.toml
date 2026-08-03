@@ -15,7 +15,7 @@ rust-version = "1.85.1"
 logwise_internal = []
 
 [dependencies]
-some_executor = "0.6.2"
+some_executor = "0.6.3"
 logwise = "0.5.0"
 test_executors_proc = "0.3.5"
 
