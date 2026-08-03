@@ -40,7 +40,7 @@ All executors work as described above on native platforms (Linux, macOS, Windows
 ## WebAssembly Support
 This crate has special support for `wasm32` targets:
 - The `async_test` macro automatically adapts to use `wasm-bindgen-test` on WASM
-- `spawn_local` uses `wasm_bindgen_futures::spawn_local` on WASM targets
+- `spawn_local` uses `wasm_lite_std::spawn_local` on WASM targets
 
 # Features
 
@@ -325,7 +325,7 @@ pub fn spawn_on<F: Future + Send + 'static>(thread_name: &'static str, future: F
 /// This function automatically selects the appropriate executor based on the target platform:
 /// - On native platforms (Linux, macOS, Windows, etc.): Uses [`sleep_on`] to run the future
 ///   on the current thread
-/// - On `wasm32` targets: Uses `wasm_bindgen_futures::spawn_local` to integrate with the
+/// - On `wasm32` targets: Uses `wasm_lite_std::spawn_local` to integrate with the
 ///   browser's event loop
 ///
 /// # Parameters
@@ -366,7 +366,7 @@ pub fn spawn_local<F: Future + 'static>(future: F, _debug_label: &'static str) {
             logwise::Level::Info,
             true,
         );
-        wasm_bindgen_futures::spawn_local(async move {
+        wasm_lite_std::spawn_local(async move {
             logwise::context::ApplyContext::new(new_context, future).await;
         });
     }
@@ -485,10 +485,8 @@ mod tests {
     use std::future::Future;
     use std::task::Poll;
 
-    #[cfg(target_arch = "wasm32")]
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
-    #[test]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    #[cfg_attr(target_arch = "wasm32", wasm_lite::wasm_lite_test)]
     fn test_sleep_reentrant() {
         struct F(bool);
         impl Future for F {
@@ -516,7 +514,8 @@ mod tests {
         assert_eq!(f.await, "hello world");
     }
 
-    #[test]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    #[cfg_attr(target_arch = "wasm32", wasm_lite::wasm_lite_test)]
     fn poll_once_test() {
         let f = std::future::pending::<()>();
         let mut pinned = std::pin::pin!(f);
