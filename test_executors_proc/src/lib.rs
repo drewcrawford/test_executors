@@ -27,15 +27,25 @@ async fn hello_world() {
 }
 ```
 */
-/// How the caller names `crate_name`, falling back to the canonical name.
+/// A path to `crate_name` that resolves from the caller's crate.
 ///
 /// Lets a consumer rename the dependency without the generated code breaking.
-fn resolve(crate_name_str: &str) -> syn::Ident {
+///
+/// `FoundCrate::Itself` must not be folded in with the error case: it means the
+/// caller *is* the crate being asked about, and an absolute `::wasm_lite_std`
+/// path does not resolve inside `wasm_lite_std` itself. That collapse made
+/// `#[async_test]` unusable in the crate's own tests.
+fn resolve(crate_name_str: &str) -> syn::Path {
     match crate_name(crate_name_str) {
-        Ok(FoundCrate::Itself) | Err(_) => {
-            syn::Ident::new(crate_name_str, Span::call_site().into())
+        Ok(FoundCrate::Itself) => syn::parse_quote!(crate),
+        Ok(FoundCrate::Name(name)) => {
+            let ident = syn::Ident::new(&name, Span::call_site().into());
+            syn::parse_quote!(::#ident)
         }
-        Ok(FoundCrate::Name(name)) => syn::Ident::new(&name, Span::call_site().into()),
+        Err(_) => {
+            let ident = syn::Ident::new(crate_name_str, Span::call_site().into());
+            syn::parse_quote!(::#ident)
+        }
     }
 }
 
@@ -80,7 +90,7 @@ pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         // event loop and passes when it settles; it does not block, which the
         // browser main thread would not permit.
         #[cfg(target_arch = "wasm32")]
-        #[#wl::wasm_lite_test(crate = ::#wl)]
+        #[#wl::wasm_lite_test(crate = #wl)]
         fn #test_fn_name() {
             #wls::async_doctest!(#fn_name());
         }
