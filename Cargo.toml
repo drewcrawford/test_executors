@@ -16,7 +16,6 @@ logwise_internal = []
 
 [dependencies]
 some_executor = "0.6.3"
-wasm_lite_std = { path = "../wasm_lite/crates/wasm_lite_std" }
 logwise = "0.5.0"
 test_executors_proc = { version = "0.3.5", path = "test_executors_proc" }
 
@@ -24,7 +23,10 @@ test_executors_proc = { version = "0.3.5", path = "test_executors_proc" }
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
+# Only `spawn_local` uses this, and only on wasm32; native builds do not need it.
+wasm_lite_std = "0.1.1"
 
 [target.'cfg(target_arch="wasm32")'.dev-dependencies]
-# Path-only, so `cargo publish` strips it and consumers never see it.
-wasm_lite = { path = "../wasm_lite/crates/wasm_lite" }
+# Supplies `#[wasm_lite_test]` for this crate's own wasm32 tests. A dev-dependency,
+# so consumers never build it.
+wasm_lite = "0.1.1"

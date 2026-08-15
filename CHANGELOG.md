@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `wasm_lite_std` and `wasm_lite` now come from crates.io at 0.1.1 instead of a path next door. They were unpublished when we first adopted them, so the manifest pointed at a sibling checkout — which meant nobody without that exact directory layout could build the crate, CI included. They're published now, so we just depend on them like anything else.
+- `wasm_lite_std` moved to the wasm32-only dependency table, where it belonged all along: `spawn_local` is its one caller and it's wasm32-only. Native builds now don't compile it at all. Nice side effect — it declares an MSRV of 1.95.0, so while it sat in the shared table it quietly dragged the whole crate up with it, and our advertised 1.85.1 was fiction on every platform. It's honest again for native.
+
 ### Fixed
 - Fixed a race in `SpawnRuntime::spawn_async` that could make a task vanish. It read the clock twice — once to decide whether the task's `poll_after` deadline was still ahead, once to work out how long to sleep — and if the deadline slipped past between those two reads, subtracting the later instant panicked on the spawned thread. The task never ran, and anyone awaiting its observer waited forever. Every deadline check now goes through `checked_duration_since`, which can't race and can't panic.
 - **The crate didn't compile for wasm32 at all.** Our runtimes compare a task's `poll_after()` deadline against the current time, and we'd quietly ended up reading those two from different clocks — `poll_after()` hands back a `some_executor::Instant`, while we were calling `now()` on `wasm_lite_std`'s. Same type on native, two unrelated types on wasm32, fifteen compile errors. We now read the clock `poll_after()` is actually measured in, which also means the `sys` module has nothing left to abstract and is gone.
