@@ -26,6 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test_executors_proc` has a crate-level doc header explaining why the macro emits two different test entry points instead of one, and that you want `test_executors` rather than this crate directly.
 - The crate docs carry a License section, so the licensing terms are visible on docs.rs and not only in the repo.
 
+## [0.3.6] - 2026-08-15
+
+This is the `test_executors_proc` companion release to 0.5.0 above; the two
+crates ship together and share this file. The proc-macro changes are described
+in full under 0.5.0 — briefly:
+
+### Fixed
+- `#[async_test]` got its documentation back. The write-up meant for it sat one line too high and landed on the private helper underneath, so docs.rs showed the macro bare.
+- `#[async_test]` now targets `wasm_lite` rather than wasm-bindgen, and its `cfg` gating actually gates.
+- `resolve()` treated `FoundCrate::Itself` as the crate's own name instead of `crate`, and looked up `wasm-bindgen-test` under the wrong package name.
+- Dropped a leftover `wasm-bindgen-test` dependency that had not done anything for a while.
+
 ## [0.4.1] - 2025-12-20
 
 ### Changed
