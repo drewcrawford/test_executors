@@ -14,6 +14,10 @@
 //! # Example
 //!
 //! ```
+//! # // These executors block the calling thread, which the wasm32 browser
+//! # // main thread does not permit; run the example on native only.
+//! # #[cfg(target_arch = "wasm32")] fn main() {}
+//! # #[cfg(not(target_arch = "wasm32"))] fn main() {
 //! use test_executors::aruntime::SpinRuntime;
 //! use some_executor::{SomeExecutor, task::{Task, Configuration}};
 //!
@@ -29,6 +33,7 @@
 //!     assert_eq!(value, 42);
 //! }
 //! # });
+//! # }
 //! ```
 //!
 //! # Integration with Global Executor
@@ -36,10 +41,15 @@
 //! You can set a runtime as the global executor using [`set_global_test_runtime`]:
 //!
 //! ```
+//! # // These executors block the calling thread, which the wasm32 browser
+//! # // main thread does not permit; run the example on native only.
+//! # #[cfg(target_arch = "wasm32")] fn main() {}
+//! # #[cfg(not(target_arch = "wasm32"))] fn main() {
 //! use test_executors::aruntime;
 //!
 //! aruntime::set_global_test_runtime();
 //! // Now some_executor::global_executor::spawn() will use SpawnRuntime
+//! # }
 //! ```
 
 use some_executor::observer::{Observer, ObserverNotified};
@@ -67,6 +77,10 @@ use std::future::Future;
 /// # Example
 ///
 /// ```
+/// # // These executors block the calling thread, which the wasm32 browser
+/// # // main thread does not permit; run the example on native only.
+/// # #[cfg(target_arch = "wasm32")] fn main() {}
+/// # #[cfg(not(target_arch = "wasm32"))] fn main() {
 /// use test_executors::aruntime::SpinRuntime;
 /// use some_executor::{SomeExecutor, task::{Task, Configuration}};
 ///
@@ -82,6 +96,7 @@ use std::future::Future;
 ///     assert_eq!(value, 42);
 /// }
 /// # });
+/// # }
 /// ```
 ///
 /// # When to Use
@@ -184,6 +199,10 @@ impl SomeExecutor for SpinRuntime {
 /// # Example
 ///
 /// ```
+/// # // These executors block the calling thread, which the wasm32 browser
+/// # // main thread does not permit; run the example on native only.
+/// # #[cfg(target_arch = "wasm32")] fn main() {}
+/// # #[cfg(not(target_arch = "wasm32"))] fn main() {
 /// use test_executors::aruntime::SleepRuntime;
 /// use some_executor::{SomeExecutor, task::{Task, Configuration}};
 ///
@@ -199,6 +218,7 @@ impl SomeExecutor for SpinRuntime {
 ///     assert_eq!(value, "completed");
 /// }
 /// # });
+/// # }
 /// ```
 ///
 /// # When to Use
@@ -309,6 +329,10 @@ impl SomeExecutor for SleepRuntime {
 /// # Example
 ///
 /// ```
+/// # // These executors block the calling thread, which the wasm32 browser
+/// # // main thread does not permit; run the example on native only.
+/// # #[cfg(target_arch = "wasm32")] fn main() {}
+/// # #[cfg(not(target_arch = "wasm32"))] fn main() {
 /// use test_executors::aruntime::SpawnRuntime;
 /// use some_executor::{SomeExecutor, task::{Task, Configuration}};
 /// use std::sync::{Arc, Mutex};
@@ -331,6 +355,7 @@ impl SomeExecutor for SleepRuntime {
 /// observer.await;
 /// assert_eq!(results.lock().unwrap().len(), 1);
 /// # });
+/// # }
 /// ```
 ///
 /// # When to Use
@@ -485,6 +510,10 @@ impl Default for SpawnRuntime {
 /// # Example
 ///
 /// ```
+/// # // These executors block the calling thread, which the wasm32 browser
+/// # // main thread does not permit; run the example on native only.
+/// # #[cfg(target_arch = "wasm32")] fn main() {}
+/// # #[cfg(not(target_arch = "wasm32"))] fn main() {
 /// use test_executors::aruntime;
 ///
 /// // Set the global runtime
@@ -492,6 +521,7 @@ impl Default for SpawnRuntime {
 ///
 /// // Now the global executor is available for use
 /// // via some_executor::global_executor::global_executor()
+/// # }
 /// ```
 ///
 /// # Note

@@ -55,6 +55,10 @@ async fn my_test() {
     let value = async { 42 }.await;
     assert_eq!(value, 42);
 }
+# // An explicit `main` keeps rustdoc from folding this into the merged doctest
+# // bundle. On wasm32 the macro registers the test in a custom wasm section, and
+# // the merged bundle's entry point never drives it, so it would hang there.
+# fn main() {}
 ```
 
 ## Integration with `some_executor`
@@ -275,6 +279,10 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 ///
 /// # Example
 /// ```
+/// # // These executors block the calling thread, which the wasm32 browser
+/// # // main thread does not permit; run the example on native only.
+/// # #[cfg(target_arch = "wasm32")] fn main() {}
+/// # #[cfg(not(target_arch = "wasm32"))] fn main() {
 /// use test_executors::spawn_on;
 /// use std::sync::{Arc, Mutex};
 /// use std::time::Duration;
@@ -292,6 +300,7 @@ pub fn sleep_on<F: Future>(mut future: F) -> F::Output {
 ///
 /// // Check the result
 /// assert_eq!(*data.lock().unwrap(), vec![42]);
+/// # }
 /// ```
 ///
 /// # Panics
