@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 /*!
+# test_executors
+
 This crate provides extremely simple, yet useful, async executors. They are primarily useful for writing unit tests
 without bringing in a full-blown executor such as [tokio](https://tokio.rs).
 
-![logo](../../../art/logo.png)
+![logo](https://github.com/drewcrawford/test_executors/raw/main/art/logo.png)
 
 # Quick Start
 
@@ -78,6 +80,15 @@ let mut runtime = SpinRuntime::new();
 The crate also provides utility functions and types:
 - [`poll_once`] and [`poll_once_pin`] - Poll a future exactly once
 - [`spawn_local`] - Platform-aware spawning that works on both native and WASM
+
+# License
+
+Licensed under either of:
+
+* Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/drewcrawford/test_executors/blob/main/LICENSE-APACHE.md) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](https://github.com/drewcrawford/test_executors/blob/main/LICENSE-MIT.md) or <http://opensource.org/licenses/MIT>)
+
+at your option.
 
 */
 

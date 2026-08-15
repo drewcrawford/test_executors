@@ -1,4 +1,16 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
+//! The expansion behind [`test_executors::async_test`](https://docs.rs/test_executors/latest/test_executors/attr.async_test.html).
+//!
+//! The crate exists only to hold that one attribute macro; everything public here is
+//! re-exported from `test_executors`, and depending on it directly buys nothing.
+//!
+//! The whole reason it is not a one-liner is that a test entry point has two
+//! incompatible shapes. On native, `#[test]` plus a blocking `sleep_on` is enough. On
+//! wasm32 the browser main thread may not block — `Atomics.wait` traps there — so the
+//! future has to be handed to the event loop and the verdict reported once it settles.
+//! The macro therefore emits both entry points behind `#[cfg]` rather than one
+//! parameterised one, and resolves the `wasm_lite`/`wasm_lite_std` paths through
+//! [`proc_macro_crate`] so a caller that renames either dependency still compiles.
 
 extern crate proc_macro;
 use proc_macro::{Span, TokenStream};
@@ -7,26 +19,6 @@ use proc_macro_crate::{FoundCrate, crate_name};
 use quote::{format_ident, quote};
 use syn::{ItemFn, parse_macro_input};
 
-/**
-A procedural macro that converts an async function into a test function.
-
-On most platforms, the test function generates a stub function that uses the sleep_on runtime.
-
-On wasm32 targets it generates a `#[wasm_lite::wasm_lite_test]` entry point that hands the future to
-`wasm_lite_std::async_doctest!`, which spawns it on the event loop and reports the verdict when it
-settles. The sleep_on path is not usable there: blocking the browser main thread is forbidden
-(`Atomics.wait` traps), which is why this is a different shape rather than the same one.
-
-# Example
-```rust
-use test_executors::async_test;
-
-#[async_test]
-async fn hello_world() {
-    assert_eq!(1 + 1, 2);
-}
-```
-*/
 /// A path to `crate_name` that resolves from the caller's crate.
 ///
 /// Lets a consumer rename the dependency without the generated code breaking.
@@ -49,6 +41,30 @@ fn resolve(crate_name_str: &str) -> syn::Path {
     }
 }
 
+/**
+A procedural macro that converts an async function into a test function.
+
+On most platforms, the test function generates a stub function that uses the sleep_on runtime.
+
+On wasm32 targets it generates a `#[wasm_lite::wasm_lite_test]` entry point that hands the future to
+`wasm_lite_std::async_doctest!`, which spawns it on the event loop and reports the verdict when it
+settles. The sleep_on path is not usable there: blocking the browser main thread is forbidden
+(`Atomics.wait` traps), which is why this is a different shape rather than the same one.
+
+# Example
+```rust
+use test_executors::async_test;
+
+#[async_test]
+async fn hello_world() {
+    assert_eq!(1 + 1, 2);
+}
+# // An explicit `main` keeps rustdoc from folding this into the merged doctest
+# // bundle. On wasm32 the macro registers the test in a custom wasm section, and
+# // the merged bundle's entry point never drives it, so it would hang there.
+# fn main() {}
+```
+*/
 #[proc_macro_attribute]
 pub fn async_test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree

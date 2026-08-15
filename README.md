@@ -40,7 +40,7 @@ All executors work as described above on native platforms (Linux, macOS, Windows
 ## WebAssembly Support
 This crate has special support for `wasm32` targets:
 - The `async_test` macro automatically adapts to use `wasm-bindgen-test` on WASM
-- `spawn_local` uses `wasm_bindgen_futures::spawn_local` on WASM targets
+- `spawn_local` uses `wasm_lite_std::spawn_local` on WASM targets
 
 # Features
 
@@ -55,6 +55,10 @@ async fn my_test() {
     let value = async { 42 }.await;
     assert_eq!(value, 42);
 }
+# // An explicit `main` keeps rustdoc from folding this into the merged doctest
+# // bundle. On wasm32 the macro registers the test in a custom wasm section, and
+# // the merged bundle's entry point never drives it, so it would hang there.
+# fn main() {}
 ```
 
 ## Integration with `some_executor`
@@ -75,15 +79,11 @@ The crate also provides utility functions and types:
 - `poll_once` and `poll_once_pin` - Poll a future exactly once
 - `spawn_local` - Platform-aware spawning that works on both native and WASM
 
-## Documentation
-
-For detailed API documentation including all function signatures, examples, and implementation details, see the [docs.rs documentation](https://docs.rs/test_executors).
-
-## License
+# License
 
 Licensed under either of:
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE.md) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](LICENSE-MIT.md) or <http://opensource.org/licenses/MIT>)
 
 at your option.
