@@ -1,2 +1,5 @@
 [target.'cfg(target_arch="wasm32")']
-runner = "wasm-bindgen-test-runner"
+# The crate targets wasm_lite natively; wasm-bindgen is no longer a dependency,
+# so `wasm-bindgen-test-runner` cannot load these binaries. Override with
+# CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER to point at a build tree copy.
+runner = ["wasm_lite", "run"]
