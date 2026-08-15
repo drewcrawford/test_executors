@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Fixed a race in `SpawnRuntime::spawn_async` that could make a task vanish. It read the clock twice — once to decide whether the task's `poll_after` deadline was still ahead, once to work out how long to sleep — and if the deadline slipped past between those two reads, subtracting the later instant panicked on the spawned thread. The task never ran, and anyone awaiting its observer waited forever. Every deadline check now goes through `checked_duration_since`, which can't race and can't panic.
 - **The crate didn't compile for wasm32 at all.** Our runtimes compare a task's `poll_after()` deadline against the current time, and we'd quietly ended up reading those two from different clocks — `poll_after()` hands back a `some_executor::Instant`, while we were calling `now()` on `wasm_lite_std`'s. Same type on native, two unrelated types on wasm32, fifteen compile errors. We now read the clock `poll_after()` is actually measured in, which also means the `sys` module has nothing left to abstract and is gone.
 - The wasm32 test tooling was still reaching for `wasm-bindgen-test-runner` even though we'd dropped wasm-bindgen entirely. It can't load these binaries anymore, so `./scripts/wasm32/tests` now hands them to the `wasm_lite` runner instead. Also swept out a leftover `wasm-bindgen-test` dependency in `test_executors_proc` that hadn't done anything for a while.
 
