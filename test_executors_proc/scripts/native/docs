@@ -4,4 +4,5 @@ WARN_FLAGS="-D warnings"
 if [[ " $* " =~ " --relaxed " ]]; then
     WARN_FLAGS=""
 fi
-RUSTDOCFLAGS="$WARN_FLAGS" cargo doc
+# --no-deps: see the note in ../scripts/native/docs.
+RUSTDOCFLAGS="$WARN_FLAGS" cargo doc --no-deps

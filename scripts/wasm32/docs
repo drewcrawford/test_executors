@@ -7,7 +7,8 @@ if [[ " $* " =~ " --relaxed " ]]; then
     export RELAXED_WARNINGS=1
 fi
 source "$SCRIPT_DIR/_env"
-RUSTDOCFLAGS="$WASM32_RUSTDOCFLAGS" cargo +nightly doc --target=wasm32-unknown-unknown
+# --no-deps: see the note in scripts/native/docs.
+RUSTDOCFLAGS="$WASM32_RUSTDOCFLAGS" cargo +nightly doc --no-deps --target=wasm32-unknown-unknown
 
 # Run proc crate docs
 cd "$REPO_ROOT/test_executors_proc"

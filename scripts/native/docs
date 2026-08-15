@@ -7,7 +7,10 @@ WARN_FLAGS="-D warnings"
 if [[ " $* " =~ " --relaxed " ]]; then
     WARN_FLAGS=""
 fi
-RUSTDOCFLAGS="$WARN_FLAGS" cargo doc
+# --no-deps: this gate is about *our* docs. Without it the sibling checkouts named
+# in [patch.crates-io] get documented too, and a path dependency does not get
+# --cap-lints allow, so a broken intra-doc link in a sibling fails this repo's gate.
+RUSTDOCFLAGS="$WARN_FLAGS" cargo doc --no-deps
 
 # Run proc crate docs
 cd "$REPO_ROOT/test_executors_proc"
