@@ -1,6 +1,6 @@
 [package]
 name = "test_executors"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2024"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
@@ -15,8 +15,8 @@ rust-version = "1.85.1"
 logwise_internal = []
 
 [dependencies]
-some_executor = "0.6.3"
-logwise = "0.5.0"
+some_executor = "0.7"
+logwise = "0.6"
 test_executors_proc = { version = "0.3.5", path = "test_executors_proc" }
 
 [dev-dependencies]

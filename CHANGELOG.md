@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2026-08-15
 
 ### Changed
 - Building from a checkout now patches `some_executor`, `logwise`, `wasm_lite` and `wasm_lite_std` to the sibling directories next door. This is a development convenience with something sharp behind it: `wasm_lite` exports `#[no_mangle]` symbols, and our graph could end up holding two copies of it — `logwise` reaches it by path, while we and `some_executor` took it from the registry. That doesn't duplicate quietly; it fails to link on wasm32 with "duplicate symbol". One copy now, everywhere. No version requirement moved, and `[patch]` never reaches anyone depending on us from crates.io.
