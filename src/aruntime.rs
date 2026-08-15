@@ -119,7 +119,7 @@ impl SomeExecutor for SpinRuntime {
         Self: Sized,
     {
         logwise::info_sync!("spawned future: {label}", label = task.label());
-        while task.poll_after() > crate::sys::time::Instant::now() {
+        while task.poll_after() > some_executor::Instant::now() {
             std::hint::spin_loop()
         }
         let (spawned, observer) = task.spawn(self);
@@ -137,7 +137,7 @@ impl SomeExecutor for SpinRuntime {
     {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
-        while spawned.poll_after() > crate::sys::time::Instant::now() {
+        while spawned.poll_after() > some_executor::Instant::now() {
             std::hint::spin_loop()
         }
         crate::spin_on(spawned);
@@ -148,7 +148,7 @@ impl SomeExecutor for SpinRuntime {
         logwise::info_sync!("spawned future: {label}", label = task.label());
 
         let (spawned, observer) = task.spawn_objsafe(self);
-        while spawned.poll_after() > crate::sys::time::Instant::now() {
+        while spawned.poll_after() > some_executor::Instant::now() {
             std::hint::spin_loop()
         }
         crate::spin_on(spawned);
@@ -237,7 +237,7 @@ impl SomeExecutor for SleepRuntime {
     {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
-        let now = crate::sys::time::Instant::now();
+        let now = some_executor::Instant::now();
         if spawned.poll_after() > now {
             let dur = spawned.poll_after() - now;
             std::thread::sleep(dur);
@@ -256,7 +256,7 @@ impl SomeExecutor for SleepRuntime {
     {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
-        let now = crate::sys::time::Instant::now();
+        let now = some_executor::Instant::now();
         if spawned.poll_after() > now {
             let dur = spawned.poll_after() - now;
             std::thread::sleep(dur);
@@ -268,7 +268,7 @@ impl SomeExecutor for SleepRuntime {
     fn spawn_objsafe(&mut self, task: ObjSafeTask) -> BoxedSendObserver {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn_objsafe(self);
-        let now = crate::sys::time::Instant::now();
+        let now = some_executor::Instant::now();
         if spawned.poll_after() > now {
             let dur = spawned.poll_after() - now;
             std::thread::sleep(dur);
@@ -370,7 +370,7 @@ impl SomeExecutor for SpawnRuntime {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn(self);
         std::thread::spawn(move || {
-            let now = crate::sys::time::Instant::now();
+            let now = some_executor::Instant::now();
             if spawned.poll_after() > now {
                 let dur = spawned.poll_after() - now;
                 std::thread::sleep(dur);
@@ -393,8 +393,8 @@ impl SomeExecutor for SpawnRuntime {
         async move {
             let (spawned, observer) = task.spawn(self);
             std::thread::spawn(move || {
-                if spawned.poll_after() > crate::sys::time::Instant::now() {
-                    let dur = spawned.poll_after() - crate::sys::time::Instant::now();
+                if spawned.poll_after() > some_executor::Instant::now() {
+                    let dur = spawned.poll_after() - some_executor::Instant::now();
                     std::thread::sleep(dur);
                 }
                 crate::sleep_on(spawned);
@@ -407,7 +407,7 @@ impl SomeExecutor for SpawnRuntime {
         logwise::info_sync!("spawned future: {label}", label = task.label());
         let (spawned, observer) = task.spawn_objsafe(self);
         std::thread::spawn(move || {
-            let now = crate::sys::time::Instant::now();
+            let now = some_executor::Instant::now();
             if spawned.poll_after() > now {
                 let dur = spawned.poll_after() - now;
                 std::thread::sleep(dur);

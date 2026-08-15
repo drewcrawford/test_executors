@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The crate didn't compile for wasm32 at all.** Our runtimes compare a task's `poll_after()` deadline against the current time, and we'd quietly ended up reading those two from different clocks — `poll_after()` hands back a `some_executor::Instant`, while we were calling `now()` on `wasm_lite_std`'s. Same type on native, two unrelated types on wasm32, fifteen compile errors. We now read the clock `poll_after()` is actually measured in, which also means the `sys` module has nothing left to abstract and is gone.
 - The wasm32 test tooling was still reaching for `wasm-bindgen-test-runner` even though we'd dropped wasm-bindgen entirely. It can't load these binaries anymore, so `./scripts/wasm32/tests` now hands them to the `wasm_lite` runner instead. Also swept out a leftover `wasm-bindgen-test` dependency in `test_executors_proc` that hadn't done anything for a while.
 
 ## [0.4.1] - 2025-12-20

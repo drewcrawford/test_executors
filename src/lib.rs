@@ -79,7 +79,6 @@ The crate also provides utility functions and types:
 
 pub mod aruntime;
 mod noop_waker;
-mod sys;
 
 use crate::noop_waker::new_context;
 use logwise::declare_logging_domain;
