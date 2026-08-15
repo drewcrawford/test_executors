@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Building from a checkout now patches `some_executor`, `logwise`, `wasm_lite` and `wasm_lite_std` to the sibling directories next door. This is a development convenience with something sharp behind it: `wasm_lite` exports `#[no_mangle]` symbols, and our graph could end up holding two copies of it — `logwise` reaches it by path, while we and `some_executor` took it from the registry. That doesn't duplicate quietly; it fails to link on wasm32 with "duplicate symbol". One copy now, everywhere. No version requirement moved, and `[patch]` never reaches anyone depending on us from crates.io.
 - `wasm_lite_std` and `wasm_lite` now come from crates.io at 0.1.1 instead of a path next door. They were unpublished when we first adopted them, so the manifest pointed at a sibling checkout — which meant nobody without that exact directory layout could build the crate, CI included. They're published now, so we just depend on them like anything else.
 - `wasm_lite_std` moved to the wasm32-only dependency table, where it belonged all along: `spawn_local` is its one caller and it's wasm32-only. Native builds now don't compile it at all. Nice side effect — it declares an MSRV of 1.95.0, so while it sat in the shared table it quietly dragged the whole crate up with it, and our advertised 1.85.1 was fiction on every platform. It's honest again for native.
 
@@ -17,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - With wasm32 building again, the doctests could finally run there — and seven of them promptly hung the browser. `spin_on`, `sleep_on` and `spawn_on` all block the calling thread, which is exactly what the wasm32 main thread won't tolerate, so those examples now run on native only. The `#[async_test]` example needed a nudge of its own: it registers through a custom wasm section that rustdoc's merged doctest bundle never drives, so it opts out of the merge. The whole wasm32 suite is green again.
 - CI was still installing `wasm-bindgen-cli` for the wasm32 job, left over from before we dropped wasm-bindgen. It now installs `wasm_lite_cli`, which supplies the `wasm_lite` binary our test runner actually invokes.
 - The wasm32 test tooling was still reaching for `wasm-bindgen-test-runner` even though we'd dropped wasm-bindgen entirely. It can't load these binaries anymore, so `./scripts/wasm32/tests` now hands them to the `wasm_lite` runner instead. Also swept out a leftover `wasm-bindgen-test` dependency in `test_executors_proc` that hadn't done anything for a while.
+- `#[async_test]` shipped with no documentation. The long write-up meant for it was sitting one line too high in the file, so it landed on the private helper underneath instead — which meant docs.rs showed the macro bare and the explanation went nowhere. Put back where it belongs.
+- The logo in the crate docs pointed at a relative path, which resolves locally and to nothing on docs.rs. It's an absolute URL now; the README keeps the repo-relative one, which is the right form for each.
+- The README's license links pointed at `LICENSE-APACHE` and `LICENSE-MIT`, neither of which exists — the files are `.md`.
+
+### Added
+- `test_executors_proc` has a crate-level doc header explaining why the macro emits two different test entry points instead of one, and that you want `test_executors` rather than this crate directly.
+- The crate docs carry a License section, so the licensing terms are visible on docs.rs and not only in the repo.
 
 ## [0.4.1] - 2025-12-20
 
