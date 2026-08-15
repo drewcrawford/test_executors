@@ -30,3 +30,28 @@ wasm_lite_std = "0.1.1"
 # Supplies `#[wasm_lite_test]` for this crate's own wasm32 tests. A dev-dependency,
 # so consumers never build it.
 wasm_lite = "0.1.1"
+
+# Dev-cycle sibling patches. Only the *root* package's [patch] is honoured, so the
+# equivalent blocks in ../some_executor and ../logwise do nothing when this crate
+# is the one being built -- they have to be restated here.
+#
+# These entries require the ../wasm_lite, ../some_executor and ../logwise
+# checkouts to be present; without them cargo cannot resolve this crate at all.
+[patch.crates-io]
+# wasm_lite must resolve to a single instance. ../logwise takes wasm_lite and
+# wasm_lite_std *by path*, while this crate and ../some_executor take them from the
+# registry, so an unpatched graph carries two copies. wasm_lite exports #[no_mangle]
+# symbols (__wl_malloc, __wl_thread_entry, __wl_closure_call_0, ...), so that is not
+# a silent duplicate -- every wasm32 binary fails to link with
+# "rust-lld: error: duplicate symbol". Patching the registry entries at the same
+# checkout unifies them; [dependencies] stays on the published version.
+wasm_lite = { path = "../wasm_lite/crates/wasm_lite" }
+wasm_lite_std = { path = "../wasm_lite/crates/wasm_lite_std" }
+# The three siblings release together, so build against the working copies rather
+# than the last-published ones -- otherwise the registry some_executor/logwise drag
+# their own (registry) wasm_lite back in, reintroducing the duplicate above.
+some_executor = { path = "../some_executor" }
+logwise = { path = "../logwise" }
+# `continue` is reached via some_executor and needs no patch: 0.1.3 takes wasm_lite
+# only as a wasm32 *dev*-dependency, which does not reach us. Re-add a patch here
+# only if a future release puts it back on a normal dependency.
