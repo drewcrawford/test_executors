@@ -25,7 +25,7 @@ members = ["test_executors_proc"]
 [dependencies]
 some_executor = "0.7"
 logwise = "0.6"
-test_executors_proc = { version = "0.3.6", path = "test_executors_proc" }
+test_executors_proc = { version = "0.5.0", path = "test_executors_proc" }
 
 [dev-dependencies]
 

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - With wasm32 building again, the doctests could finally run there — and seven of them promptly hung the browser. `spin_on`, `sleep_on` and `spawn_on` all block the calling thread, which is exactly what the wasm32 main thread won't tolerate, so those examples now run on native only. The `#[async_test]` example needed a nudge of its own: it registers through a custom wasm section that rustdoc's merged doctest bundle never drives, so it opts out of the merge. The whole wasm32 suite is green again.
 - CI was still installing `wasm-bindgen-cli` for the wasm32 job, left over from before we dropped wasm-bindgen. It now installs `wasm_lite_cli`, which supplies the `wasm_lite` binary our test runner actually invokes.
 - The wasm32 test tooling was still reaching for `wasm-bindgen-test-runner` even though we'd dropped wasm-bindgen entirely. It can't load these binaries anymore, so `./scripts/wasm32/tests` now hands them to the `wasm_lite` runner instead. Also swept out a leftover `wasm-bindgen-test` dependency in `test_executors_proc` that hadn't done anything for a while.
+- `#[async_test]` now targets `wasm_lite` rather than wasm-bindgen, and its `cfg` gating actually gates — the attributes were being emitted in a position where they selected nothing, so both test entry points were compiled on every target.
+- `resolve()` in the proc macro treated `FoundCrate::Itself` as the crate's own name when it means `crate`, and looked up `wasm-bindgen-test` under the wrong package name. Either one produced a macro expansion that referred to a path that wasn't there.
 - `#[async_test]` shipped with no documentation. The long write-up meant for it was sitting one line too high in the file, so it landed on the private helper underneath instead — which meant docs.rs showed the macro bare and the explanation went nowhere. Put back where it belongs.
 - The logo in the crate docs pointed at a relative path, which resolves locally and to nothing on docs.rs. It's an absolute URL now; the README keeps the repo-relative one, which is the right form for each.
 - The README's license links pointed at `LICENSE-APACHE` and `LICENSE-MIT`, neither of which exists — the files are `.md`.
@@ -25,18 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `test_executors_proc` has a crate-level doc header explaining why the macro emits two different test entry points instead of one, and that you want `test_executors` rather than this crate directly.
 - The crate docs carry a License section, so the licensing terms are visible on docs.rs and not only in the repo.
-
-## [0.3.6] - 2026-08-15
-
-This is the `test_executors_proc` companion release to 0.5.0 above; the two
-crates ship together and share this file. The proc-macro changes are described
-in full under 0.5.0 — briefly:
-
-### Fixed
-- `#[async_test]` got its documentation back. The write-up meant for it sat one line too high and landed on the private helper underneath, so docs.rs showed the macro bare.
-- `#[async_test]` now targets `wasm_lite` rather than wasm-bindgen, and its `cfg` gating actually gates.
-- `resolve()` treated `FoundCrate::Itself` as the crate's own name instead of `crate`, and looked up `wasm-bindgen-test` under the wrong package name.
-- Dropped a leftover `wasm-bindgen-test` dependency that had not done anything for a while.
 
 ## [0.4.1] - 2025-12-20
 
