@@ -26,27 +26,10 @@ logwise = "0.6"
 # both targets -- which is why these are not in the wasm32-only table below.
 # `wasm_lite_std` supplies `block_on`, the native half of an `async fn` test.
 # Dev-dependencies, so consumers build neither.
-wasm_lite = "0.1.1"
-wasm_lite_std = "0.1.1"
+wasm_lite = "0.1.2"
+wasm_lite_std = "0.1.2"
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
 # Only `spawn_local` uses this, and only on wasm32; native builds do not need it.
-wasm_lite_std = "0.1.1"
-
-# The entry-point behaviour this crate's tests rely on -- `#[wasm_lite_test]`
-# registering a libtest `#[test]` off wasm32, and driving an `async fn` body --
-# landed in wasm_lite after 0.1.1 and is not published yet, so the sibling
-# checkout is the only place it exists. Drop this block once it is published and
-# raise the requirements above to that version.
-#
-# A patch rather than path dependencies on the entries above, because the
-# problem is the *whole graph*, not our own edges: `logwise` depends on
-# `wasm_lite_std` from the registry too. Pointing only our edges at the sibling
-# leaves two copies of a crate that exports `#[no_mangle]` symbols, which does
-# not resolve quietly -- it fails to link on wasm32 with `duplicate symbol:
-# __wl_malloc` and a dozen more. A patch redirects every edge to one copy. The
-# 0.5.0 notes describe the same trap.
-[patch.crates-io]
-wasm_lite = { path = "../wasm_lite/crates/wasm_lite" }
-wasm_lite_std = { path = "../wasm_lite/crates/wasm_lite_std" }
+wasm_lite_std = "0.1.2"

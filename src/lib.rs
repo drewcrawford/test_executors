@@ -63,7 +63,6 @@ async fn my_test() {
     let value = async { 42 }.await;
     assert_eq!(value, 42);
 }
-# fn main() {}
 ```
 
 That registers an ordinary libtest `#[test]` off wasm32 and a browser-driven

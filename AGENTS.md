@@ -73,9 +73,9 @@ included. Do not reintroduce a wrapper attribute here: the one it used to have
 (`#[async_test]`, removed in 0.6.0) silently dropped `#[should_panic]` and
 `#[ignore]`, and every feature wasm_lite added had to be re-plumbed through it.
 
-`wasm_lite`/`wasm_lite_std` are dev-dependencies by **path** for now, because the
-entry-point behaviour used here landed after wasm_lite 0.1.1 and is not published
-yet. Restore registry requirements once it is.
+`wasm_lite`/`wasm_lite_std` come from crates.io at 0.1.2, which is where the
+entry-point behaviour used here (`#[wasm_lite_test]`'s libtest registration and
+`async fn` driving) first shipped.
 
 ## Key Design Decisions
 

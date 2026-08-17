@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **The crate's own tests moved to `#[wasm_lite::wasm_lite_test]`**, including the ones that used the `#[cfg_attr(not(target_arch = "wasm32"), test)]` pairing — one attribute now does both. `wasm_lite` and `wasm_lite_std` are dev-dependencies on every target rather than wasm32 only, since the native half of an `async fn` test is `wasm_lite_std::block_on`.
-- **`wasm_lite` and `wasm_lite_std` are path dependencies on the sibling checkout for now.** Both entry-point behaviours above landed after wasm_lite 0.1.1 and are not published yet, so the sibling is the only place they exist. This wants reverting to registry requirements once wasm_lite publishes.
+- **`wasm_lite` and `wasm_lite_std` moved to crates.io 0.1.2.** Both entry-point behaviours above landed after 0.1.1 and were unpublished when this crate first adopted them, so the manifest pointed at a sibling checkout via `[patch.crates-io]`. They're published now, so the patch is gone and the dependencies are ordinary registry requirements again.
 - **Documented what the executors actually do on wasm32.** The README and crate docs claimed `#[async_test]` adapted to `wasm-bindgen-test`, which stopped being true in 0.5.0. They now say the useful thing instead: `spin_on`, `sleep_on` and `spawn_on` are native-only in practice, because the browser main thread has no condition variable to wait on, no thread for `std` to spawn, and no tolerance for a loop that never yields to the event loop.
 
 ## [0.5.0] - 2026-08-15
