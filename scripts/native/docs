@@ -11,7 +11,3 @@ fi
 # in [patch.crates-io] get documented too, and a path dependency does not get
 # --cap-lints allow, so a broken intra-doc link in a sibling fails this repo's gate.
 RUSTDOCFLAGS="$WARN_FLAGS" cargo doc --no-deps
-
-# Run proc crate docs
-cd "$REPO_ROOT/test_executors_proc"
-"$REPO_ROOT/test_executors_proc/scripts/native/docs" "$@"

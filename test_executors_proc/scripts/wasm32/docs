@@ -1,9 +1,0 @@
-#!/bin/bash
-set -e
-if [[ " $* " =~ " --relaxed " ]]; then
-    export RELAXED_WARNINGS=1
-fi
-source "$(dirname "$0")/_env"
-# Proc-macro crates compile for host, not target
-# --no-deps: see the note in ../scripts/native/docs.
-RUSTDOCFLAGS="$WASM32_RUSTDOCFLAGS" cargo +nightly doc --no-deps

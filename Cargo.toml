@@ -1,6 +1,6 @@
 [package]
 name = "test_executors"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 description = "Simple async executors for testing."
 license = "MIT OR Apache-2.0"
@@ -14,27 +14,39 @@ rust-version = "1.95.0"
 [features]
 logwise_internal = []
 
-# test_executors_proc is a path dependency AND has a dev-dependency back on this
-# crate. Without a workspace it forms its own, so it cannot see the
-# [patch.crates-io] block below, and resolves the siblings from the registry --
-# which fails outright whenever this crate requires a sibling version that is
-# not published yet. One workspace, one patch block, one lockfile.
 [workspace]
-members = ["test_executors_proc"]
 
 [dependencies]
 some_executor = "0.7"
 logwise = "0.6"
-test_executors_proc = { version = "0.5.0", path = "test_executors_proc" }
 
 [dev-dependencies]
+# This crate's own test entry points. `#[wasm_lite_test]` registers a libtest
+# `#[test]` off wasm32 and a browser-driven test on it, so one attribute covers
+# both targets -- which is why these are not in the wasm32-only table below.
+# `wasm_lite_std` supplies `block_on`, the native half of an `async fn` test.
+# Dev-dependencies, so consumers build neither.
+wasm_lite = "0.1.1"
+wasm_lite_std = "0.1.1"
 
 # wasm-32 support
 [target.'cfg(target_arch="wasm32")'.dependencies]
 # Only `spawn_local` uses this, and only on wasm32; native builds do not need it.
 wasm_lite_std = "0.1.1"
 
-[target.'cfg(target_arch="wasm32")'.dev-dependencies]
-# Supplies `#[wasm_lite_test]` for this crate's own wasm32 tests. A dev-dependency,
-# so consumers never build it.
-wasm_lite = "0.1.1"
+# The entry-point behaviour this crate's tests rely on -- `#[wasm_lite_test]`
+# registering a libtest `#[test]` off wasm32, and driving an `async fn` body --
+# landed in wasm_lite after 0.1.1 and is not published yet, so the sibling
+# checkout is the only place it exists. Drop this block once it is published and
+# raise the requirements above to that version.
+#
+# A patch rather than path dependencies on the entries above, because the
+# problem is the *whole graph*, not our own edges: `logwise` depends on
+# `wasm_lite_std` from the registry too. Pointing only our edges at the sibling
+# leaves two copies of a crate that exports `#[no_mangle]` symbols, which does
+# not resolve quietly -- it fails to link on wasm32 with `duplicate symbol:
+# __wl_malloc` and a dozen more. A patch redirects every edge to one copy. The
+# 0.5.0 notes describe the same trap.
+[patch.crates-io]
+wasm_lite = { path = "../wasm_lite/crates/wasm_lite" }
+wasm_lite_std = { path = "../wasm_lite/crates/wasm_lite_std" }

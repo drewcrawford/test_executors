@@ -9,7 +9,3 @@ fi
 source "$SCRIPT_DIR/_env"
 # --no-deps: see the note in scripts/native/docs.
 RUSTDOCFLAGS="$WASM32_RUSTDOCFLAGS" cargo +nightly doc --no-deps --target=wasm32-unknown-unknown
-
-# Run proc crate docs
-cd "$REPO_ROOT/test_executors_proc"
-"$REPO_ROOT/test_executors_proc/scripts/wasm32/docs" "$@"

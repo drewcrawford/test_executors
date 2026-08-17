@@ -40,28 +40,40 @@ The crate provides three main executors:
 All executors work as described above on native platforms (Linux, macOS, Windows, etc.).
 
 ## WebAssembly Support
-This crate has special support for `wasm32` targets:
-- The `async_test` macro automatically adapts to use `wasm-bindgen-test` on WASM
-- `spawn_local` uses `wasm_lite_std::spawn_local` on WASM targets
+[`spawn_local`] hands the future to the browser event loop via
+`wasm_lite_std::spawn_local` on wasm32, and runs it on the calling thread
+everywhere else.
 
-# Features
+The three blocking executors are native-only in practice. The browser main
+thread may not block: [`sleep_on`] waits on a condition variable, which is
+unavailable there; [`spawn_on`] needs a thread `std` cannot spawn on that
+target; and [`spin_on`] never yields to the event loop, so anything waiting on
+it is waiting forever. Use them on native, or from a Web Worker.
 
-## `async_test` Macro
-The [`async_test`] macro allows you to write async tests that work on both native and WASM targets:
+# Writing tests
+
+This crate no longer supplies a test attribute. It used to export
+`#[async_test]`; use
+[`#[wasm_lite::wasm_lite_test]`](https://docs.rs/wasm_lite/latest/wasm_lite/attr.wasm_lite_test.html)
+instead, which does the same job better and in one place:
 
 ```
-use test_executors::async_test;
-
-#[async_test]
+#[wasm_lite::wasm_lite_test]
 async fn my_test() {
     let value = async { 42 }.await;
     assert_eq!(value, 42);
 }
-# // An explicit `main` keeps rustdoc from folding this into the merged doctest
-# // bundle. On wasm32 the macro registers the test in a custom wasm section, and
-# // the merged bundle's entry point never drives it, so it would hang there.
 # fn main() {}
 ```
+
+That registers an ordinary libtest `#[test]` off wasm32 and a browser-driven
+test on it, so one attribute covers both targets. Unlike the attribute this
+crate used to ship, it honours `#[should_panic]` and `#[ignore]`, supports
+running the body on a Web Worker, and fails a test whose future panics, hangs,
+or is dropped.
+
+What remains here is the executors themselves, for driving a future from
+somewhere that is not a test entry point.
 
 ## Integration with `some_executor`
 This crate implements the [some_executor](https://crates.io/crates/some_executor) trait for all executors,
@@ -105,10 +117,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Condvar, Mutex};
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-pub use test_executors_proc::async_test;
 declare_logging_domain!();
-
-extern crate self as test_executors;
 
 /// Blocks the calling thread until a future is ready, using a spinloop.
 ///
@@ -504,8 +513,7 @@ mod tests {
     use std::future::Future;
     use std::task::Poll;
 
-    #[cfg_attr(not(target_arch = "wasm32"), test)]
-    #[cfg_attr(target_arch = "wasm32", wasm_lite::wasm_lite_test)]
+    #[wasm_lite::wasm_lite_test]
     fn test_sleep_reentrant() {
         struct F(bool);
         impl Future for F {
@@ -527,14 +535,13 @@ mod tests {
         super::sleep_on(f);
     }
 
-    #[crate::async_test]
+    #[wasm_lite::wasm_lite_test]
     async fn hello_world() {
         let f = async { "hello world" };
         assert_eq!(f.await, "hello world");
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), test)]
-    #[cfg_attr(target_arch = "wasm32", wasm_lite::wasm_lite_test)]
+    #[wasm_lite::wasm_lite_test]
     fn poll_once_test() {
         let f = std::future::pending::<()>();
         let mut pinned = std::pin::pin!(f);

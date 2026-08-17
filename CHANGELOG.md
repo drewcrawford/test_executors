@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-16
+
+### Removed
+- **`#[async_test]` is gone, and `test_executors_proc` with it.** Use [`#[wasm_lite::wasm_lite_test]`](https://docs.rs/wasm_lite/latest/wasm_lite/attr.wasm_lite_test.html) instead: it registers a libtest `#[test]` off wasm32 and a browser-driven test on it, so one attribute covers both targets, and it takes an `async fn` directly. Migration is usually a one-line swap.
+
+  The reason is that our version was the worse of the two and getting worse. It silently dropped `#[should_panic]` and `#[ignore]` — they landed on the inner async function, which is not the test, so an ignored test ran anyway and a correct `should_panic` test reported as failing. It quietly accepted and discarded arguments like `(worker)`. It renamed your test to `async_test_<name>`. And because its wasm32 half was a forwarder, every capability wasm_lite grew had to be re-plumbed through it before anyone here could use it. On the wasm32 side there was nothing left that was ours; on the native side the value was `sleep_on`, which is still right here and still exported.
+
+  `test_executors_proc` existed only to hold that one macro, so it is retired rather than left as an empty shell.
+
+### Changed
+- **The crate's own tests moved to `#[wasm_lite::wasm_lite_test]`**, including the ones that used the `#[cfg_attr(not(target_arch = "wasm32"), test)]` pairing — one attribute now does both. `wasm_lite` and `wasm_lite_std` are dev-dependencies on every target rather than wasm32 only, since the native half of an `async fn` test is `wasm_lite_std::block_on`.
+- **`wasm_lite` and `wasm_lite_std` are path dependencies on the sibling checkout for now.** Both entry-point behaviours above landed after wasm_lite 0.1.1 and are not published yet, so the sibling is the only place they exist. This wants reverting to registry requirements once wasm_lite publishes.
+- **Documented what the executors actually do on wasm32.** The README and crate docs claimed `#[async_test]` adapted to `wasm-bindgen-test`, which stopped being true in 0.5.0. They now say the useful thing instead: `spin_on`, `sleep_on` and `spawn_on` are native-only in practice, because the browser main thread has no condition variable to wait on, no thread for `std` to spawn, and no tolerance for a loop that never yields to the event loop.
+
 ## [0.5.0] - 2026-08-15
 
 ### Changed

@@ -1,8 +1,0 @@
-#!/bin/bash
-set -e
-WARN_FLAGS="-D warnings"
-if [[ " $* " =~ " --relaxed " ]]; then
-    WARN_FLAGS=""
-fi
-# --no-deps: see the note in ../scripts/native/docs.
-RUSTDOCFLAGS="$WARN_FLAGS" cargo doc --no-deps
